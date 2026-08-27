@@ -1,0 +1,17 @@
+{
+  "name": "salinity-shield",
+  "version": "1.0.0",
+  "description": "Salinity Shield AI — Smart Salinity Ingress & Coastal Farmland Protection Advisor",
+  "scripts": {
+    "dev": "concurrently --names \"SERVER,CLIENT\" --prefix-colors \"cyan,magenta\" \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "cd server && node src/server.js",
+    "dev:client": "cd client && npx vite",
+    "install:all": "cd server && npm install && cd ../client && npm install",
+    "db:push": "cd server && npx prisma db push",
+    "db:seed": "cd server && node prisma/seed.js",
+    "test:risk": "cd server && node src/tests/riskEngine.test.js"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.5"
+  }
+}

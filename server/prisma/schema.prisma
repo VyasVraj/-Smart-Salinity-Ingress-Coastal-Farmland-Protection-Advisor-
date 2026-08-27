@@ -1,0 +1,121 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String   @id @default(cuid())
+  name              String
+  email             String   @unique
+  preferredLanguage String   @default("en")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  farms Farm[]
+}
+
+model Farm {
+  id               String   @id @default(cuid())
+  userId           String?
+  farmName         String
+  farmerName       String
+  district         String
+  location         String
+  landArea         Float
+  currentCrop      String
+  soilType         String
+  irrigationSource String
+  latitude         Float
+  longitude        Float
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user             User?    @relation(fields: [userId], references: [id])
+  readings         SalinityReading[]
+  riskAssessments  RiskAssessment[]
+  agentRuns        AgentRun[]
+  advisories       Advisory[]
+  alerts           Alert[]
+}
+
+model SalinityReading {
+  id              String   @id @default(cuid())
+  farmId          String
+  timestamp       DateTime @default(now())
+  soilEC          Float    // dS/m
+  groundwaterEC   Float    // dS/m
+  tds             Float    // ppm
+  soilPH          Float
+  moisture        Float    // percentage
+  waterLevel      Float    // meters
+  source          String   @default("MANUAL") // MANUAL | SENSOR | SIMULATOR
+  createdAt       DateTime @default(now())
+
+  farm            Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  riskAssessment  RiskAssessment?
+  agentRuns       AgentRun[]
+
+  @@index([farmId, timestamp])
+}
+
+model RiskAssessment {
+  id                 String   @id @default(cuid())
+  farmId             String
+  readingId          String   @unique
+  riskLevel          String   // LOW | MEDIUM | HIGH | CRITICAL
+  riskScore          Float
+  trend              String   // IMPROVING | STABLE | WORSENING | RAPIDLY_WORSENING
+  trendChangePercent Float
+  severity           String
+  reasoningSummary   String
+  createdAt          DateTime @default(now())
+
+  farm               Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  reading            SalinityReading @relation(fields: [readingId], references: [id], onDelete: Cascade)
+  advisories         Advisory[]
+}
+
+model AgentRun {
+  id            String   @id @default(cuid())
+  farmId        String
+  readingId     String
+  agentName     String
+  triggerReason String
+  status        String   // RUNNING | COMPLETED | FAILED
+  inputSummary  String
+  outputSummary String?
+  createdAt     DateTime @default(now())
+
+  farm          Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  reading       SalinityReading @relation(fields: [readingId], references: [id], onDelete: Cascade)
+}
+
+model Advisory {
+  id               String   @id @default(cuid())
+  farmId           String
+  riskAssessmentId String?
+  type             String   // MONITORING | CROP | IRRIGATION | RECLAMATION | ALERT | CHAT
+  language         String   @default("en")
+  content          String
+  createdAt        DateTime @default(now())
+
+  farm             Farm     @relation(fields: [farmId], references: [id], onDelete: Cascade)
+  riskAssessment   RiskAssessment? @relation(fields: [riskAssessmentId], references: [id])
+}
+
+model Alert {
+  id          String    @id @default(cuid())
+  farmId      String
+  severity    String    // LOW | MEDIUM | HIGH | CRITICAL
+  title       String
+  message     String
+  status      String    @default("ACTIVE") // ACTIVE | RESOLVED
+  createdAt   DateTime  @default(now())
+  resolvedAt  DateTime?
+
+  farm        Farm      @relation(fields: [farmId], references: [id], onDelete: Cascade)
+}

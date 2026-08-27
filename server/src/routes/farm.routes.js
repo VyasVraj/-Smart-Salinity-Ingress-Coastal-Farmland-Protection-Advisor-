@@ -1,0 +1,141 @@
+/**
+ * Farm routes
+ */
+
+import prisma from '../db/client.js'
+import { farmSchema } from '../validation/schemas.js'
+
+/**
+ * @param {import('fastify').FastifyInstance} fastify
+ */
+export async function farmRoutes(fastify) {
+  // GET /api/farms - list all farms with latest risk
+  fastify.get('/api/farms', async (req, reply) => {
+    const farms = await prisma.farm.findMany({
+      include: {
+        readings: {
+          orderBy: { timestamp: 'desc' },
+          take: 1,
+        },
+        riskAssessments: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+        alerts: {
+          where: { status: 'ACTIVE' },
+          orderBy: { createdAt: 'desc' },
+          take: 5,
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    })
+    return farms
+  })
+
+  // GET /api/farms/:id - single farm detail
+  fastify.get('/api/farms/:id', async (req, reply) => {
+    const farm = await prisma.farm.findUnique({
+      where: { id: req.params.id },
+      include: {
+        readings: {
+          orderBy: { timestamp: 'desc' },
+          take: 50,
+        },
+        riskAssessments: {
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+        },
+        alerts: {
+          orderBy: { createdAt: 'desc' },
+          take: 20,
+        },
+        advisories: {
+          orderBy: { createdAt: 'desc' },
+          take: 20,
+        },
+        agentRuns: {
+          orderBy: { createdAt: 'desc' },
+          take: 30,
+        },
+      },
+    })
+
+    if (!farm) return reply.code(404).send({ error: 'Farm not found' })
+    return farm
+  })
+
+  // POST /api/farms - create farm
+  fastify.post('/api/farms', async (req, reply) => {
+    const parsed = farmSchema.safeParse(req.body)
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'Validation failed', details: parsed.error.issues })
+    }
+
+    const farm = await prisma.farm.create({ data: parsed.data })
+    return reply.code(201).send(farm)
+  })
+
+  // PUT /api/farms/:id - update farm
+  fastify.put('/api/farms/:id', async (req, reply) => {
+    const parsed = farmSchema.partial().safeParse(req.body)
+    if (!parsed.success) {
+      return reply.code(400).send({ error: 'Validation failed', details: parsed.error.issues })
+    }
+
+    const farm = await prisma.farm.update({
+      where: { id: req.params.id },
+      data: parsed.data,
+    })
+    return farm
+  })
+
+  // GET /api/farms/:id/readings - historical readings for charts
+  fastify.get('/api/farms/:id/readings', async (req, reply) => {
+    const limit = parseInt(req.query.limit || '100', 10)
+    const readings = await prisma.salinityReading.findMany({
+      where: { farmId: req.params.id },
+      orderBy: { timestamp: 'asc' },
+      take: limit,
+    })
+    return readings
+  })
+
+  // GET /api/farms/:id/advisories - advisories for farm
+  fastify.get('/api/farms/:id/advisories', async (req, reply) => {
+    const advisories = await prisma.advisory.findMany({
+      where: { farmId: req.params.id },
+      orderBy: { createdAt: 'desc' },
+      take: parseInt(req.query.limit || '20', 10),
+    })
+    return advisories
+  })
+
+  // GET /api/farms/:id/alerts - alerts for farm
+  fastify.get('/api/farms/:id/alerts', async (req, reply) => {
+    const alerts = await prisma.alert.findMany({
+      where: { farmId: req.params.id },
+      orderBy: { createdAt: 'desc' },
+      take: 30,
+    })
+    return alerts
+  })
+
+  // PUT /api/alerts/:id/resolve - resolve an alert
+  fastify.put('/api/alerts/:id/resolve', async (req, reply) => {
+    const alert = await prisma.alert.update({
+      where: { id: req.params.id },
+      data: { status: 'RESOLVED', resolvedAt: new Date() },
+    })
+    return alert
+  })
+
+  // GET /api/farms/:id/agent-runs - agent run history
+  fastify.get('/api/farms/:id/agent-runs', async (req, reply) => {
+    const runs = await prisma.agentRun.findMany({
+      where: { farmId: req.params.id },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    })
+    return runs
+  })
+}
