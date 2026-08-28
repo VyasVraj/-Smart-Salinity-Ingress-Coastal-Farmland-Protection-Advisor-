@@ -21,16 +21,28 @@ import { isIBMConfigured } from './config/env.js'
 // ---- Kill any process already on our port (Windows) ----
 ;(function ensurePortFree(port) {
   try {
-    const r = spawnSync('powershell', [
-      '-NoProfile', '-NonInteractive', '-Command',
-      `$m = netstat -ano | Select-String ':${port}\\s.*LISTENING'; ` +
-      `if ($m) { ($m -split '\\s+')[-1] }`
+    // Use netstat + findstr which is more reliable than PowerShell Select-String
+    const r = spawnSync('cmd', [
+      '/c',
+      `netstat -ano | findstr /R ":${port}[^0-9].*LISTENING"`
     ], { encoding: 'utf8', timeout: 5000 })
-    const pid = (r.stdout || '').trim()
-    if (pid && /^\d+$/.test(pid)) {
+
+    const lines = (r.stdout || '').trim().split('\n').filter(Boolean)
+    const pids = new Set()
+    for (const line of lines) {
+      const parts = line.trim().split(/\s+/)
+      const pid = parts[parts.length - 1]
+      if (pid && /^\d+$/.test(pid) && pid !== '0') pids.add(pid)
+    }
+
+    for (const pid of pids) {
       spawnSync('taskkill', ['/PID', pid, '/F'], { stdio: 'ignore' })
       console.log(`  Port ${port} was busy (PID ${pid}) - freed it.`)
-      const deadline = Date.now() + 800
+    }
+
+    if (pids.size > 0) {
+      // Wait for OS to release the port
+      const deadline = Date.now() + 1200
       while (Date.now() < deadline) { /* busy-wait */ }
     }
   } catch { /* not on Windows or port already free */ }
@@ -74,9 +86,22 @@ process.on('SIGINT',  () => shutdown('SIGINT'))
 process.on('SIGTERM', () => shutdown('SIGTERM'))
 
 // ---- Start ----
+async function startListening(retries = 1) {
+  try {
+    await fastify.listen({ port: config.port, host: '0.0.0.0' })
+  } catch (err) {
+    if (err.code === 'EADDRINUSE' && retries > 0) {
+      console.log(`  Port ${config.port} still busy — killing and retrying...`)
+      spawnSync('cmd', ['/c', `for /f "tokens=5" %a in ('netstat -ano ^| findstr :${config.port}') do taskkill /PID %a /F`], { stdio: 'ignore', shell: false })
+      await new Promise(r => setTimeout(r, 1500))
+      return startListening(retries - 1)
+    }
+    throw err
+  }
+}
+
 try {
-  // Listen first — this calls ready() internally
-  await fastify.listen({ port: config.port, host: '0.0.0.0' })
+  await startListening()
 
   // Now attach Socket.IO to the live server
   const io = new SocketIOServer(fastify.server, {
