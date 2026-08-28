@@ -4,6 +4,7 @@
 
 import prisma from '../db/client.js'
 import { farmSchema } from '../validation/schemas.js'
+import { processReading } from '../pipeline/readingPipeline.js'
 
 /**
  * @param {import('fastify').FastifyInstance} fastify
@@ -64,15 +65,68 @@ export async function farmRoutes(fastify) {
     return farm
   })
 
-  // POST /api/farms - create farm
+  // POST /api/farms - create farm (+ optional initial reading for immediate risk calculation)
   fastify.post('/api/farms', async (req, reply) => {
     const parsed = farmSchema.safeParse(req.body)
     if (!parsed.success) {
       return reply.code(400).send({ error: 'Validation failed', details: parsed.error.issues })
     }
 
+    // Check for duplicate farm name in the same district
+    const existing = await prisma.farm.findFirst({
+      where: {
+        farmName: { equals: parsed.data.farmName, mode: 'insensitive' },
+        district: { equals: parsed.data.district, mode: 'insensitive' },
+      },
+    })
+    if (existing) {
+      return reply.code(409).send({
+        error: 'A farm with this name already exists in this district.',
+        existingId: existing.id,
+      })
+    }
+
+    // Create the farm
     const farm = await prisma.farm.create({ data: parsed.data })
-    return reply.code(201).send(farm)
+
+    // If initial salinity readings are provided, run them through the full pipeline
+    const ir = req.body.initialReading
+    if (
+      ir &&
+      typeof ir.soilEC === 'number' &&
+      typeof ir.groundwaterEC === 'number' &&
+      typeof ir.tds === 'number'
+    ) {
+      try {
+        await processReading(
+          {
+            farmId: farm.id,
+            soilEC: ir.soilEC,
+            groundwaterEC: ir.groundwaterEC,
+            tds: ir.tds,
+            soilPH: typeof ir.soilPH === 'number' ? ir.soilPH : 7.0,
+            moisture: typeof ir.moisture === 'number' ? ir.moisture : 40,
+            waterLevel: typeof ir.waterLevel === 'number' ? ir.waterLevel : 5,
+            source: 'MANUAL',
+          },
+          fastify.io,
+        )
+      } catch (pipelineErr) {
+        // Non-fatal — farm is created, reading pipeline failed
+        fastify.log.warn(`[Farm] Initial reading pipeline error for ${farm.id}: ${pipelineErr.message}`)
+      }
+    }
+
+    // Return the complete farm object (matching GET /api/farms shape)
+    const fullFarm = await prisma.farm.findUnique({
+      where: { id: farm.id },
+      include: {
+        readings: { orderBy: { timestamp: 'desc' }, take: 1 },
+        riskAssessments: { orderBy: { createdAt: 'desc' }, take: 1 },
+        alerts: { where: { status: 'ACTIVE' }, orderBy: { createdAt: 'desc' }, take: 5 },
+      },
+    })
+    return reply.code(201).send(fullFarm)
   })
 
   // PUT /api/farms/:id - update farm

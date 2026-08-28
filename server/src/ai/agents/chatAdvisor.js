@@ -1,8 +1,14 @@
 /**
- * Chat Advisory Agent — handles contextual AI chat queries
+ * Chat Advisory Agent — handles contextual AI chat queries via IBM Granite
+ *
+ * Uses callGraniteChat() which:
+ * - Calls the /ml/v1/text/chat endpoint (Granite 3.x native)
+ * - Auto-falls back to /ml/v1/text/generation if chat endpoint not supported
+ * - Does NOT require JSON in the response
+ * - Returns the raw assistant text directly
  */
 
-import { callGranite } from '../graniteService.js'
+import { callGraniteChat } from '../graniteService.js'
 import { isIBMConfigured } from '../../config/env.js'
 
 const LANG_LABELS = {
@@ -39,58 +45,95 @@ export async function runChatAdvisor({ question, farm, latestReading, latestRisk
 
   const langLabel = LANG_LABELS[language] || LANG_LABELS.en
 
-  const advisorySummary = recentAdvisories.slice(0, 3)
-    .map(a => `${a.type}: ${JSON.stringify(JSON.parse(a.content)).slice(0, 200)}`)
+  // Return demo response immediately if IBM is not configured
+  if (!isIBMConfigured()) {
+    console.log('[IBM AI] Not configured — returning demo chat response')
+    const demoFn = DEMO_RESPONSES[language] || DEMO_RESPONSES.en
+    return { answer: demoFn(question, farm, latestRisk), isDemo: true }
+  }
+
+  // Build the system prompt with full farm context
+  const systemPrompt = `You are Salinity Shield AI, a knowledgeable and empathetic agricultural advisor specializing in soil salinity management for coastal Gujarat farmers. 
+
+Your role:
+- Answer farmer questions based ONLY on the provided farm data
+- Give practical, actionable advice tailored to the specific farm conditions
+- Never invent or fabricate sensor readings or data
+- Be honest when data is unavailable — say so clearly
+- Keep answers under 350 words, using clear and farmer-friendly language
+- Avoid overly technical jargon; explain terms when used
+- Show care for the farmer's livelihood and wellbeing
+
+IMPORTANT LANGUAGE INSTRUCTION: You MUST respond ENTIRELY in ${langLabel}. Do not use any other language in your response. If responding in Hindi or Gujarati, use proper script (not transliteration).`
+
+  // Build the user message with all available farm context
+  const advisorySummary = (recentAdvisories || []).slice(0, 2)
+    .map(a => {
+      try {
+        const parsed = JSON.parse(a.content)
+        return `[${a.type}] ${parsed.answer ? parsed.answer.slice(0, 150) + '...' : JSON.stringify(parsed).slice(0, 150)}`
+      } catch {
+        return `[${a.type}] ${String(a.content).slice(0, 150)}`
+      }
+    })
     .join('\n')
 
-  const prompt = `<|system|>
-You are Salinity Shield AI, an agricultural advisor for coastal Gujarat farmers.
-Answer the farmer's question based ONLY on the provided farm data.
-Never invent sensor readings. Be clear if data is unavailable.
-Keep answers under 300 words. Be practical and farmer-friendly.
-IMPORTANT: You MUST respond ONLY in ${langLabel}. Do not use any other language.
-<|user|>
-Farm: ${farm.farmName} (${farm.district})
+  const userMessage = `FARM INFORMATION:
+Farm Name: ${farm.farmName}
+District: ${farm.district}
 Farmer: ${farm.farmerName}
-Current Crop: ${farm.currentCrop}
-Soil Type: ${farm.soilType}
-Irrigation: ${farm.irrigationSource}
+Current Crop: ${farm.currentCrop || 'Not specified'}
+Soil Type: ${farm.soilType || 'Not specified'}
+Irrigation Source: ${farm.irrigationSource || 'Not specified'}
+Land Area: ${farm.landArea ? `${farm.landArea} acres` : 'Not specified'}
 
-${latestReading ? `LATEST READING:
+${latestReading ? `LATEST SENSOR READING (${new Date(latestReading.timestamp).toLocaleDateString('en-IN')}):
 - Soil EC: ${latestReading.soilEC} dS/m
 - Groundwater EC: ${latestReading.groundwaterEC} dS/m
-- TDS: ${latestReading.tds} ppm
-- pH: ${latestReading.soilPH}
-- Source: ${latestReading.source}` : 'No readings available yet.'}
+- Total Dissolved Solids (TDS): ${latestReading.tds} ppm
+- Soil pH: ${latestReading.soilPH}
+- Moisture: ${latestReading.moisture ?? 'N/A'}%
+- Reading Source: ${latestReading.source}` : 'SENSOR DATA: No readings recorded yet for this farm.'}
 
-${latestRisk ? `CURRENT RISK: ${latestRisk.riskLevel} (score: ${latestRisk.riskScore}/100)
-TREND: ${latestRisk.trend} (${latestRisk.trendChangePercent}% change)` : 'Risk not yet assessed.'}
+${latestRisk ? `CURRENT RISK ASSESSMENT:
+- Risk Level: ${latestRisk.riskLevel}
+- Risk Score: ${latestRisk.riskScore}/100
+- Trend: ${latestRisk.trend}
+- Trend Change: ${latestRisk.trendChangePercent}%
+- Summary: ${latestRisk.reasoningSummary || 'N/A'}` : 'RISK ASSESSMENT: Not yet computed for this farm.'}
 
-RECENT ADVISORIES:
-${advisorySummary || 'No advisories yet.'}
+${advisorySummary ? `RECENT ADVISORIES:\n${advisorySummary}` : 'RECENT ADVISORIES: None yet.'}
 
 FARMER QUESTION: ${question}
 
-Respond in ${langLabel} only.
-<|assistant|>
-`
+Please respond in ${langLabel} only.`
 
-  if (!isIBMConfigured()) {
-    const demoFn = DEMO_RESPONSES[language] || DEMO_RESPONSES.en
-    return {
-      answer: demoFn(question, farm, latestRisk),
-      isDemo: true,
-    }
-  }
+  console.log('[IBM AI] Calling Granite chat for farm:', farm.farmName, '| language:', language)
 
-  const result = await callGranite(prompt, { params: { max_new_tokens: 400, temperature: 0.6 } })
+  const result = await callGraniteChat(systemPrompt, userMessage, {
+    params: { max_new_tokens: 500, temperature: 0.6, decoding_method: 'greedy' },
+  })
 
   if (result.success) {
-    return { answer: result.raw, isDemo: false }
+    console.log('[IBM AI] Chat response received successfully')
+    return { answer: result.text, isDemo: false }
   }
 
-  return {
-    answer: `I encountered an issue analyzing your question. ${result.error || ''}\n\nBased on available data: Farm ${farm.farmName} is at ${latestRisk?.riskLevel || 'UNKNOWN'} risk with ${latestRisk?.trend || 'UNKNOWN'} trend.`,
-    isDemo: false,
+  // IBM configured but call failed — return meaningful error (not demo)
+  console.error('[IBM AI] Chat call failed:', result.errorType, result.error)
+
+  const errorMessages = {
+    AUTH: `IBM Granite authentication failed. The API key may be invalid or expired. Please check your IBM_WATSON_API_KEY configuration.\n\nFarm ${farm.farmName} is at ${latestRisk?.riskLevel || 'UNKNOWN'} risk with ${latestRisk?.trend || 'UNKNOWN'} trend.`,
+    FORBIDDEN: `IBM Granite access denied. Please verify your IBM_PROJECT_ID is correct and that your account has access to this project.\n\nFarm ${farm.farmName} current risk: ${latestRisk?.riskLevel || 'UNKNOWN'}.`,
+    NOT_FOUND: `IBM Granite model not found. The configured model ID (${process.env.IBM_GRANITE_MODEL_ID || 'ibm/granite-13b-instruct-v2'}) may be unavailable or deprecated. Try updating IBM_GRANITE_MODEL_ID in your .env file.`,
+    RATE_LIMIT: `IBM watsonx.ai rate limit reached. Please wait a moment and try again.`,
+    TIMEOUT: `IBM Granite request timed out. The service may be under load. Please try again.\n\nFarm ${farm.farmName} is at ${latestRisk?.riskLevel || 'UNKNOWN'} risk.`,
+    NETWORK: `Cannot connect to IBM watsonx.ai. Please check your internet connection and verify IBM_WATSON_AI_URL is correct.`,
+    UNAVAILABLE: `IBM watsonx.ai is temporarily unavailable. Please try again in a few minutes.`,
   }
+
+  const errorAnswer = errorMessages[result.errorType]
+    || `IBM Granite request failed: ${result.error || 'Unknown error'}\n\nFarm ${farm.farmName} is at ${latestRisk?.riskLevel || 'UNKNOWN'} risk with ${latestRisk?.trend || 'UNKNOWN'} trend.`
+
+  return { answer: errorAnswer, isDemo: false }
 }

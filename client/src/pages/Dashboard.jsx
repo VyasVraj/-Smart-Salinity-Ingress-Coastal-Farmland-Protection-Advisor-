@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Waves, MapPin, TrendingUp, AlertTriangle, Activity, Cpu, GitBranch, FlaskConical, Map, Clock } from 'lucide-react'
+import { Waves, MapPin, TrendingUp, AlertTriangle, Activity, Cpu, GitBranch, FlaskConical, Map, Clock, Plus } from 'lucide-react'
 import { useFarms } from '../hooks/useFarm.js'
+import { AddFarmModal } from '../components/AddFarmModal.jsx'
 import { RiskBadge, TrendBadge, LiveBadge } from '../components/ui/Badges.jsx'
 import { formatTime } from '../lib/utils.js'
 
@@ -91,6 +93,7 @@ function IntelCard({ icon: Icon, label, value, sub, color = 'text-blue-400', onC
 export default function Dashboard() {
   const navigate = useNavigate()
   const { data: farms = [], isLoading, error } = useFarms()
+  const [modalOpen, setModalOpen] = useState(false)
 
   const stats = {
     total:    farms.length,
@@ -120,7 +123,15 @@ export default function Dashboard() {
           </h1>
           <p className="text-gray-500 text-sm mt-1">Smart Salinity Ingress & Coastal Farmland Protection Advisor</p>
         </div>
-        <LiveBadge />
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            <Plus size={14} /> Add Farm
+          </button>
+          <LiveBadge />
+        </div>
       </div>
 
       {/* Summary stats */}
@@ -213,11 +224,24 @@ export default function Dashboard() {
       )}
 
       {!isLoading && farms.length === 0 && !error && (
-        <div className="card p-8 text-center text-gray-600">
-          <p className="text-lg mb-2">No farms found</p>
-          <p className="text-sm">Run <code className="bg-gray-800 px-2 py-0.5 rounded text-gray-400">npm run db:seed</code> in the server directory to add demo farms.</p>
+        <div className="card p-10 text-center space-y-4">
+          <Waves size={36} className="text-gray-700 mx-auto" />
+          <p className="text-gray-500">No farms registered yet.</p>
+          <button
+            onClick={() => setModalOpen(true)}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            <Plus size={15} />
+            Add Your First Farm
+          </button>
         </div>
       )}
+
+      <AddFarmModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onSuccess={(newFarm) => navigate(`/farms/${newFarm.id}`)}
+      />
     </div>
   )
 }

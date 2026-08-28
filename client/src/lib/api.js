@@ -179,6 +179,7 @@ export const api = {
     list:      ()        => withFallback(() => request('/farms'),                              demoFarmList),
     get:       (id)      => withFallback(() => request(`/farms/${id}`),                        () => demoFarm(id)),
     create:    (data)    => request('/farms', { method: 'POST', body: JSON.stringify(data) }),
+    delete:    (id)      => request(`/farms/${id}`, { method: 'DELETE' }),
     update:    (id, data)=> request(`/farms/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     readings:  (id, lim = 100) => withFallback(() => request(`/farms/${id}/readings?limit=${lim}`), () => demoReadings(id)),
     advisories:(id)      => withFallback(() => request(`/farms/${id}/advisories`),             () => DEMO_FARMS.find(f => f.id === id)?.advisories ?? []),

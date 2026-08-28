@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { socket } from '../lib/socket.js'
 import { api } from '../lib/api.js'
@@ -99,4 +99,23 @@ export function useAgentRuns(farmId) {
   }, [farmId, query])
 
   return query
+}
+
+/**
+ * Mutation hook: create a new farm
+ * On success, automatically refetches the farms list so the new farm
+ * appears immediately everywhere (Dashboard, FarmsList, selectors…)
+ *
+ * @returns {UseMutationResult} — call .mutateAsync(farmData) with the form payload
+ */
+export function useCreateFarm() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data) => api.farms.create(data),
+    onSuccess: () => {
+      // Invalidate the farms list so every component re-fetches
+      queryClient.invalidateQueries({ queryKey: ['farms'] })
+    },
+  })
 }

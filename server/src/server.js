@@ -10,13 +10,12 @@ import dotenv from 'dotenv'
 
 dotenv.config()
 
-import { config } from './config/env.js'
+import { config, isIBMConfigured, logIBMDiagnostics } from './config/env.js'
 import { farmRoutes } from './routes/farm.routes.js'
 import { readingRoutes } from './routes/reading.routes.js'
 import { chatRoutes } from './routes/chat.routes.js'
 import { analyticsRoutes } from './routes/analytics.routes.js'
 import prisma from './db/client.js'
-import { isIBMConfigured } from './config/env.js'
 
 // ---- Kill any process already on our port (Windows) ----
 ;(function ensurePortFree(port) {
@@ -75,6 +74,15 @@ fastify.get('/api/health', async () => ({
   environment: config.nodeEnv,
 }))
 
+fastify.get('/api/ai/health', async () => ({
+  configured: isIBMConfigured(),
+  provider: 'IBM watsonx.ai',
+  model: config.ibm.modelId,
+  projectConfigured: !!config.ibm.projectId,
+  apiKeyConfigured: !!config.ibm.apiKey,
+  url: config.ibm.aiUrl,
+}))
+
 // ---- Graceful shutdown ----
 const shutdown = async (signal) => {
   fastify.log.info(`Received ${signal}, shutting down...`)
@@ -129,8 +137,10 @@ try {
   console.log('\nSalinity Shield AI Server')
   console.log(`   Port:        ${config.port}`)
   console.log(`   Environment: ${config.nodeEnv}`)
-  console.log(`   IBM Granite: ${isIBMConfigured() ? 'Configured' : 'Not configured (demo mode)'}`)
+  console.log(`   IBM Granite: ${isIBMConfigured() ? '✓ Configured' : '✗ Not configured (demo mode)'}`)
   console.log(`   API:         http://localhost:${config.port}/api/health`)
+  console.log(`   AI Health:   http://localhost:${config.port}/api/ai/health`)
+  logIBMDiagnostics()
 } catch (err) {
   fastify.log.error(err)
   process.exit(1)
