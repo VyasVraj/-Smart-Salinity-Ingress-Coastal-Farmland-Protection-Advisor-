@@ -10,7 +10,7 @@ import { api } from '../lib/api.js'
 import { RiskBadge } from '../components/ui/Badges.jsx'
 import { formatSensor } from '../lib/utils.js'
 
-const RISK_COLOR = { LOW: 'var(--risk-low)', MEDIUM: 'var(--risk-medium)', HIGH: 'var(--risk-high)', CRITICAL: 'var(--risk-critical)' }
+const RISK_COLOR = { LOW: '#45D483', MEDIUM: '#F5B942', HIGH: '#FF554D', CRITICAL: '#FF2D78' }
 
 function riskCol(level) {
   return RISK_COLOR[level] || 'var(--accent-seafoam)'
@@ -57,9 +57,12 @@ export default function ForecastPage() {
           <TrendingUp size={20} style={{ color: 'var(--accent-seafoam)' }} /> Salinity Forecast
         </h1>
         <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
-          Linear trend projection based on historical readings.{' '}
-          <span style={{ color: 'var(--risk-medium)' }}>Model estimates — not guaranteed outcomes.</span>
+          Linear trend projection based on historical readings.
         </p>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1rem', marginTop: '0.5rem' }}>
+          <span style={{ fontSize: '0.625rem', fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', padding: '0.15rem 0.55rem', borderRadius: 4, background: 'rgba(69,212,131,0.1)', color: '#45D483', border: '1px solid rgba(69,212,131,0.25)' }}>◌ Model Estimate</span>
+          <span style={{ fontSize: '0.625rem', fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', padding: '0.15rem 0.55rem', borderRadius: 4, background: 'rgba(245,158,11,0.1)', color: 'var(--risk-medium)', border: '1px solid rgba(245,158,11,0.25)' }}>⚠ Not Guaranteed</span>
+        </div>
       </div>
 
       {/* Farm selector */}
@@ -83,21 +86,40 @@ export default function ForecastPage() {
 
       {forecast?.sufficient && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          {/* Current + projections */}
+          {/* Current + projections - more visual */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.625rem' }}>
-            <div className="card" style={{ padding: '0.875rem', textAlign: 'center' }}>
-              <div className="section-label" style={{ marginBottom: '0.5rem' }}>Current</div>
+            {/* Current */}
+            <div className="card" style={{
+              padding: '1rem', textAlign: 'center',
+              background: `linear-gradient(135deg, ${riskCol(forecast.currentRiskLevel)}10 0%, var(--bg-card) 100%)`,
+              borderColor: `${riskCol(forecast.currentRiskLevel)}30`,
+              position: 'relative', overflow: 'hidden',
+            }}>
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: riskCol(forecast.currentRiskLevel), borderRadius: '12px 12px 0 0' }} />
+              <div style={{ fontSize: '0.5625rem', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Current</div>
               <RiskBadge level={forecast.currentRiskLevel} size="lg" />
-              <div style={{ fontSize: '1.375rem', fontWeight: 800, color: riskCol(forecast.currentRiskLevel), marginTop: '0.375rem', lineHeight: 1 }}>
-                {forecast.currentRiskScore}<span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>/100</span>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: riskCol(forecast.currentRiskLevel), marginTop: '0.5rem', lineHeight: 1, fontFamily: 'monospace' }}>
+                {forecast.currentRiskScore}
               </div>
+              <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)' }}>/100</div>
             </div>
             {[projection7, projection30, projection90].filter(Boolean).map(p => (
-              <div key={p.days} style={{ background: 'rgba(45,212,191,0.04)', border: '1px solid rgba(45,212,191,0.15)', borderRadius: 10, padding: '0.875rem', textAlign: 'center' }}>
-                <div className="section-label" style={{ marginBottom: '0.5rem' }}>+{p.days} days *</div>
+              <div key={p.days} style={{
+                background: `linear-gradient(135deg, ${riskCol(p.riskLevel)}08 0%, var(--bg-card) 100%)`,
+                border: `1px solid ${riskCol(p.riskLevel)}25`,
+                borderRadius: 12, padding: '1rem', textAlign: 'center',
+                position: 'relative', overflow: 'hidden',
+              }}>
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: riskCol(p.riskLevel), opacity: 0.6 }} />
+                <div style={{ fontSize: '0.5625rem', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '0.5rem' }}>+{p.days} Days</div>
                 <RiskBadge level={p.riskLevel} size="lg" />
-                <div style={{ fontSize: '1.375rem', fontWeight: 800, color: riskCol(p.riskLevel), marginTop: '0.375rem', lineHeight: 1 }}>
-                  {p.riskScore}<span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>/100</span>
+                <div style={{ fontSize: '1.75rem', fontWeight: 800, color: riskCol(p.riskLevel), marginTop: '0.5rem', lineHeight: 1, fontFamily: 'monospace' }}>
+                  {p.riskScore}
+                </div>
+                <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)' }}>/100</div>
+                {/* Mini progress bar */}
+                <div style={{ marginTop: '0.5rem', height: 3, background: 'var(--bg-elevated)', borderRadius: 99, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', background: riskCol(p.riskLevel), borderRadius: 99, width: `${p.riskScore}%`, transition: 'width 0.5s' }} />
                 </div>
               </div>
             ))}

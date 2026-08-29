@@ -166,6 +166,62 @@ function TraceEvent({ event, isLast }) {
   )
 }
 
+const PIPELINE_OVERVIEW_STAGES = [
+  { label: 'Data Input',    icon: '📡', key: 'SENSOR' },
+  { label: 'Monitoring',   icon: '🔬', key: 'SENSOR' },
+  { label: 'Risk Engine',  icon: '⚖️', key: 'RISK' },
+  { label: 'Forecast',     icon: '📈', key: 'RISK' },
+  { label: 'AI Advisory',  icon: '🤖', key: 'AI_AGENT' },
+  { label: 'Alert',        icon: '🚨', key: 'AI_AGENT' },
+]
+
+function PipelineOverview({ counts }) {
+  const stageActive = [
+    counts.SENSOR > 0,
+    counts.SENSOR > 0,
+    counts.RISK > 0,
+    counts.RISK > 0,
+    counts.AI_AGENT > 0,
+    counts.AI_AGENT > 0,
+  ]
+  return (
+    <div className="card" style={{ padding: '1rem 1.25rem', marginBottom: '0.5rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.875rem' }}>
+        <GitBranch size={13} style={{ color: 'var(--accent-cyan)' }} />
+        <span className="section-label" style={{ color: 'var(--accent-cyan)' }}>MULTI-AGENT EXECUTION PIPELINE</span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', overflowX: 'auto', paddingBottom: 2 }}>
+        {PIPELINE_OVERVIEW_STAGES.map((stage, i) => (
+          <div key={stage.label} style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+            <div style={{ textAlign: 'center', minWidth: 72 }}>
+              <div style={{
+                width: 36, height: 36, borderRadius: '50%', margin: '0 auto 0.375rem',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '1rem',
+                background: stageActive[i] ? 'rgba(25,230,210,0.12)' : 'var(--bg-elevated)',
+                border: stageActive[i] ? '1.5px solid rgba(25,230,210,0.4)' : '1.5px solid var(--border)',
+                boxShadow: stageActive[i] ? '0 0 10px rgba(25,230,210,0.2)' : 'none',
+              }}>
+                {stage.icon}
+              </div>
+              <div style={{ fontSize: '0.5625rem', fontWeight: 700, color: stageActive[i] ? 'var(--text-secondary)' : 'var(--text-muted)', letterSpacing: '0.05em' }}>{stage.label}</div>
+              <div style={{ fontSize: '0.5rem', color: stageActive[i] ? 'var(--accent-cyan)' : 'var(--text-disabled)', marginTop: 2, fontWeight: 700 }}>
+                {stageActive[i] ? '✓ ACTIVE' : '○ READY'}
+              </div>
+            </div>
+            {i < PIPELINE_OVERVIEW_STAGES.length - 1 && (
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: 20, flexShrink: 0 }}>
+                <div style={{ width: 12, height: 1, background: stageActive[i] ? 'var(--accent-cyan)' : 'var(--border)', opacity: 0.5 }} />
+                <ChevronRight size={10} style={{ color: stageActive[i] ? 'var(--accent-cyan)' : 'var(--border)', opacity: 0.5 }} />
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function DecisionTracePage() {
@@ -345,6 +401,11 @@ export default function DecisionTracePage() {
           )
         })}
       </div>
+
+      {/* Pipeline overview */}
+      {!isLoading && allEvents.length > 0 && (
+        <PipelineOverview counts={counts} />
+      )}
 
       {/* ── Loading ────────────────────────────────────────────────────────── */}
       {isLoading && (

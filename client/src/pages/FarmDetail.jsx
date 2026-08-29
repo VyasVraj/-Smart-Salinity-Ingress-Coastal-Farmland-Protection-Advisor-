@@ -1,6 +1,6 @@
-import { useParams, useNavigate } from 'react-router-dom'
+﻿import { useParams, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
-import { ArrowLeft, MapPin, AlertTriangle, Cpu, MessageSquare, TrendingUp, GitBranch, FlaskConical, Wheat } from 'lucide-react'
+import { ArrowLeft, MapPin, AlertTriangle, Cpu, MessageSquare, TrendingUp, GitBranch, FlaskConical, Wheat, Radio } from 'lucide-react'
 import { useFarm, useFarmReadings } from '../hooks/useFarm.js'
 import { useActivityTimeline } from '../hooks/useActivityTimeline.js'
 import { RiskBadge, TrendBadge, DemoBadge, LiveBadge } from '../components/ui/Badges.jsx'
@@ -13,8 +13,9 @@ import { ExplainableRiskScore } from '../components/ExplainableRiskScore.jsx'
 import { formatTime } from '../lib/utils.js'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../lib/api.js'
+import { formatSensor } from '../lib/utils.js'
 
-const TABS = ['Overview', 'Risk Explained', 'Charts', 'AI Advisory', 'Alerts', 'Agent Activity', 'Manual Entry', 'Chat']
+const TABS = ['Overview', 'Digital Twin', 'Risk Explained', 'Charts', 'AI Advisory', 'Alerts', 'Agent Activity', 'Manual Entry', 'Chat']
 
 function riskCol(level) {
   return { LOW: 'var(--risk-low)', MEDIUM: 'var(--risk-medium)', HIGH: 'var(--risk-high)', CRITICAL: 'var(--risk-critical)' }[level] || 'var(--text-muted)'
@@ -57,7 +58,7 @@ function AdvisoryCard({ advisory }) {
         <ul style={{ margin: '0.5rem 0 0', padding: 0, listStyle: 'none' }}>
           {content.irrigationGuidance.slice(0, 4).map((g, i) => (
             <li key={i} style={{ display: 'flex', gap: '0.375rem', fontSize: '0.8125rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
-              <span style={{ color: 'var(--accent-seafoam)', flexShrink: 0 }}>·</span>{g}
+              <span style={{ color: 'var(--accent-seafoam)', flexShrink: 0 }}>Â·</span>{g}
             </li>
           ))}
         </ul>
@@ -116,7 +117,7 @@ export default function FarmDetail() {
   })
 
   if (isLoading) return (
-    <div style={{ padding: '1.5rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>Loading farm data…</div>
+    <div style={{ padding: '1.5rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>Loading farm dataâ€¦</div>
   )
   if (!farm) return (
     <div style={{ padding: '1.5rem', color: 'var(--risk-high)', fontSize: '0.875rem' }}>Farm not found</div>
@@ -146,11 +147,11 @@ export default function FarmDetail() {
             </h1>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
-                <MapPin size={12} /> {farm.farmerName} · {farm.district}
+                <MapPin size={12} /> {farm.farmerName} Â· {farm.district}
               </span>
               {farm.currentCrop && (
                 <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
-                  <Wheat size={12} /> {farm.currentCrop} · {farm.landArea} ha
+                  <Wheat size={12} /> {farm.currentCrop} Â· {farm.landArea} ha
                 </span>
               )}
             </div>
@@ -253,7 +254,7 @@ export default function FarmDetail() {
               <div className="section-label" style={{ marginBottom: '0.625rem' }}>Risk Assessment</div>
               <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>{latestRisk.reasoningSummary}</p>
               <div style={{ marginTop: '0.5rem', fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
-                Change: {latestRisk.trendChangePercent}% · Score: {latestRisk.riskScore}/100
+                Change: {latestRisk.trendChangePercent}% Â· Score: {latestRisk.riskScore}/100
               </div>
             </div>
           )}
@@ -268,6 +269,143 @@ export default function FarmDetail() {
               ].map(([k, v]) => v && (
                 <div key={k}>
                   <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginBottom: '0.125rem' }}>{k}</div>
+                  <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{v}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {tab === 'Digital Twin' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {/* Farm Digital Twin â€” inline since the component file may still be creating */}
+          <div className="digital-twin">
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: `${riskCol(level)}18`, border: `1px solid ${riskCol(level)}35`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Radio size={14} style={{ color: riskCol(level) }} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '0.625rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--accent-cyan)' }}>Farm Digital Twin</div>
+                <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: 2 }}>{farm.farmName} Â· {farm.district}</div>
+              </div>
+              {latestRisk && (
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '1.75rem', fontWeight: 800, color: riskCol(level), lineHeight: 1, fontFamily: 'monospace' }}>{latestRisk.riskScore}</div>
+                  <div style={{ fontSize: '0.5625rem', color: 'var(--text-muted)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Risk Score</div>
+                </div>
+              )}
+            </div>
+
+            {/* Twin Grid */}
+            <div className="digital-twin__grid">
+              {[
+                {
+                  icon: 'ðŸŒ±',
+                  label: 'Soil EC',
+                  value: latestReading?.soilEC != null ? `${formatSensor('soilEC', latestReading.soilEC)} dS/m` : 'â€”',
+                  sub: latestReading?.soilEC != null
+                    ? (latestReading.soilEC < 2 ? 'Normal' : latestReading.soilEC < 4 ? 'Elevated' : latestReading.soilEC < 8 ? 'High' : 'Critical')
+                    : 'No reading',
+                  color: latestReading?.soilEC != null
+                    ? (latestReading.soilEC < 2 ? '#45D483' : latestReading.soilEC < 4 ? '#F5B942' : latestReading.soilEC < 8 ? '#FF554D' : '#FF2D78')
+                    : 'var(--text-muted)',
+                },
+                {
+                  icon: 'ðŸ’§',
+                  label: 'Groundwater',
+                  value: latestReading?.groundwaterEC != null ? `${formatSensor('groundwaterEC', latestReading.groundwaterEC)} dS/m` : 'â€”',
+                  sub: 'Groundwater EC',
+                  color: 'var(--accent-cyan)',
+                },
+                {
+                  icon: 'ðŸŒ¾',
+                  label: 'Crop',
+                  value: farm.currentCrop || 'â€”',
+                  sub: farm.landArea ? `${farm.landArea} ha` : 'Area unknown',
+                  color: '#45D483',
+                },
+                {
+                  icon: 'ðŸ“¡',
+                  label: 'Sensors',
+                  value: latestReading ? 'LIVE' : 'NO DATA',
+                  sub: latestReading ? formatTime(latestReading.timestamp) : 'Submit a reading',
+                  color: latestReading ? '#45D483' : 'var(--text-muted)',
+                },
+                {
+                  icon: 'ðŸ”¬',
+                  label: 'TDS',
+                  value: latestReading?.tds != null ? `${formatSensor('tds', latestReading.tds)} ppm` : 'â€”',
+                  sub: latestReading?.tds != null ? (latestReading.tds < 1000 ? 'Normal' : latestReading.tds < 2000 ? 'Elevated' : 'High') : 'No reading',
+                  color: latestReading?.tds != null
+                    ? (latestReading.tds < 1000 ? '#45D483' : latestReading.tds < 2000 ? '#F5B942' : '#FF554D')
+                    : 'var(--text-muted)',
+                },
+                {
+                  icon: 'ðŸ“Š',
+                  label: 'Risk Level',
+                  value: level,
+                  sub: latestRisk?.trend?.replace(/_/g, ' ') || 'â€”',
+                  color: riskCol(level),
+                },
+                {
+                  icon: 'ðŸŒŠ',
+                  label: 'pH',
+                  value: latestReading?.soilPH != null ? latestReading.soilPH.toFixed(1) : 'â€”',
+                  sub: latestReading?.soilPH != null ? (latestReading.soilPH >= 5.5 && latestReading.soilPH <= 7.5 ? 'Optimal' : 'Watch') : 'No reading',
+                  color: latestReading?.soilPH != null ? (latestReading.soilPH >= 5.5 && latestReading.soilPH <= 7.5 ? '#45D483' : '#F5B942') : 'var(--text-muted)',
+                },
+                {
+                  icon: 'ðŸ’¦',
+                  label: 'Moisture',
+                  value: latestReading?.moisture != null ? `${latestReading.moisture}%` : 'â€”',
+                  sub: 'Soil moisture',
+                  color: 'var(--accent-blue)',
+                },
+              ].map((cell) => (
+                <div key={cell.label} className="digital-twin__cell">
+                  <span className="digital-twin__icon">{cell.icon}</span>
+                  <div className="digital-twin__label">{cell.label}</div>
+                  <div className="digital-twin__value" style={{ color: cell.color }}>{cell.value}</div>
+                  <div className="digital-twin__sub">{cell.sub}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Salinity risk bar */}
+            {latestRisk && (
+              <div style={{ marginTop: '1.25rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.625rem', color: 'var(--text-muted)', marginBottom: '0.375rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  <span>Salinity Risk Index</span>
+                  <span style={{ color: riskCol(level), fontWeight: 700 }}>{latestRisk.riskScore}/100 â€” {level}</span>
+                </div>
+                <div style={{ height: 6, background: 'var(--bg-base)', borderRadius: 99, overflow: 'hidden' }}>
+                  <div style={{
+                    height: '100%', borderRadius: 99,
+                    background: `linear-gradient(90deg, ${riskCol(level)}70, ${riskCol(level)})`,
+                    width: `${Math.min(100, latestRisk.riskScore)}%`,
+                    transition: 'width 0.6s ease',
+                  }} />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Farm info grid */}
+          <div className="card" style={{ padding: '1rem 1.25rem' }}>
+            <div className="section-label" style={{ marginBottom: '0.875rem' }}>Farm Properties</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.75rem 1.25rem' }}>
+              {[
+                ['Farmer', farm.farmerName],
+                ['Location', farm.location],
+                ['Soil Type', farm.soilType],
+                ['Irrigation', farm.irrigationSource],
+                ['Area', `${farm.landArea} hectares`],
+                ['Coordinates', farm.latitude ? `${farm.latitude.toFixed(4)}, ${farm.longitude.toFixed(4)}` : null],
+              ].filter(([, v]) => v).map(([k, v]) => (
+                <div key={k}>
+                  <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginBottom: '0.125rem', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>{k}</div>
                   <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{v}</div>
                 </div>
               ))}
@@ -327,7 +465,7 @@ export default function FarmDetail() {
                     {alert.status === 'ACTIVE' && (
                       <button className="btn-ghost" style={{ fontSize: '0.8125rem' }} onClick={() => resolveMutation.mutate(alert.id)}>Resolve</button>
                     )}
-                    {alert.status === 'RESOLVED' && <span style={{ fontSize: '0.75rem', color: 'var(--risk-low)' }}>✓ Resolved</span>}
+                    {alert.status === 'RESOLVED' && <span style={{ fontSize: '0.75rem', color: 'var(--risk-low)' }}>âœ“ Resolved</span>}
                   </div>
                 </div>
               </div>
@@ -350,7 +488,7 @@ export default function FarmDetail() {
                 {farm.agentRuns.slice(0, 15).map(run => (
                   <div key={run.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.8125rem', background: 'var(--bg-elevated)', borderRadius: 7, padding: '0.5rem 0.75rem' }}>
                     <span style={{ fontWeight: 600, color: run.status === 'COMPLETED' ? 'var(--risk-low)' : run.status === 'FAILED' ? 'var(--risk-high)' : 'var(--risk-medium)' }}>
-                      {run.status === 'COMPLETED' ? '✓' : run.status === 'FAILED' ? '✗' : '⟳'} {run.agentName}
+                      {run.status === 'COMPLETED' ? 'âœ“' : run.status === 'FAILED' ? 'âœ—' : 'âŸ³'} {run.agentName}
                     </span>
                     <span style={{ color: 'var(--text-muted)', flex: 1 }}>{run.triggerReason}</span>
                     <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{formatTime(run.createdAt)}</span>
@@ -366,7 +504,7 @@ export default function FarmDetail() {
         <div className="card" style={{ padding: '1.25rem' }}>
           <div className="section-label" style={{ marginBottom: '0.5rem' }}>Submit Manual Reading</div>
           <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '1rem', lineHeight: 1.6 }}>
-            Submitting a reading triggers the full pipeline: validation → PostgreSQL → risk engine → AI agent orchestration → real-time update.
+            Submitting a reading triggers the full pipeline: validation â†’ PostgreSQL â†’ risk engine â†’ AI agent orchestration â†’ real-time update.
           </p>
           <ReadingForm farmId={id} onSuccess={() => {}} />
         </div>
@@ -377,7 +515,7 @@ export default function FarmDetail() {
           <div style={{ padding: '0.875rem 1.25rem', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <MessageSquare size={15} style={{ color: 'var(--accent-seafoam)' }} />
             <span style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)' }}>AI Farm Advisor Chat</span>
-            <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>— answers based on your farm data</span>
+            <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>â€” answers based on your farm data</span>
           </div>
           <AIChatAdvisor farmId={id} farmName={farm.farmName} />
         </div>
@@ -385,3 +523,4 @@ export default function FarmDetail() {
     </div>
   )
 }
+

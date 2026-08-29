@@ -21,11 +21,11 @@ const DEFAULT_ZOOM   = 7
 
 // Risk colour map
 const RISK_COLORS = {
-  LOW:      '#22c55e',
-  MEDIUM:   '#f59e0b',
-  HIGH:     '#ef4444',
-  CRITICAL: '#7c3aed',
-  UNKNOWN:  '#6b7280',
+  LOW:      '#45D483',
+  MEDIUM:   '#F5B942',
+  HIGH:     '#FF554D',
+  CRITICAL: '#FF2D78',
+  UNKNOWN:  '#4E7A68',
 }
 
 // ── Marker icon factory ────────────────────────────────────────────────────────
@@ -46,7 +46,7 @@ function makeIcon(riskLevel, isSelected = false) {
     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20">
       ${pulse}
       <circle cx="10" cy="10" r="${size / 2}" fill="${color}" fill-opacity="0.9"
-              stroke="${isSelected ? '#ffffff' : '#1e293b'}" stroke-width="${border}"/>
+              stroke="${isSelected ? '#ffffff' : '#0D241C'}" stroke-width="${border}"/>
     </svg>`
 
   return L.divIcon({
@@ -79,12 +79,12 @@ function buildPopupHTML(farm) {
 
   const alertsRow = farm.activeAlerts > 0
     ? `<tr><td colspan="2" style="padding-top:6px">
-         <span style="color:#f87171;font-size:11px">⚠ ${farm.activeAlerts} active alert${farm.activeAlerts > 1 ? 's' : ''}</span>
+         <span style="color:#FF554D;font-size:11px">⚠ ${farm.activeAlerts} active alert${farm.activeAlerts > 1 ? 's' : ''}</span>
        </td></tr>`
     : ''
 
   return `
-    <div style="background:#1e293b;border-radius:8px;padding:12px 14px;min-width:200px;max-width:260px;
+    <div style="background:#0D241C;border:1px solid rgba(100,220,170,0.15);border-radius:8px;padding:12px 14px;min-width:200px;max-width:260px;
                 font-family:system-ui,sans-serif;color:#e2e8f0;line-height:1.5">
       <div style="font-weight:700;font-size:14px;color:#f1f5f9;margin-bottom:2px">${farm.farmName}</div>
       <div style="color:#94a3b8;font-size:11px;margin-bottom:8px">${farm.farmerName ?? ''} · ${farm.district}</div>
@@ -107,8 +107,8 @@ function buildPopupHTML(farm) {
       </table>
       <button
         data-farm-id="${farm.id}"
-        style="margin-top:10px;width:100%;padding:5px 0;background:#3b82f655;
-               border:1px solid #3b82f680;border-radius:6px;color:#93c5fd;
+        style="margin-top:10px;width:100%;padding:6px 0;background:#45D483;
+               border:none;border-radius:6px;color:#06110E;font-weight:600;
                font-size:12px;cursor:pointer;font-family:inherit"
       >
         View Farm Details
@@ -136,7 +136,7 @@ export default function LeafletRiskMap({ farms, selectedFarm, onFarmSelect, onVi
     })
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors',
       maxZoom: 19,
     }).addTo(map)
 

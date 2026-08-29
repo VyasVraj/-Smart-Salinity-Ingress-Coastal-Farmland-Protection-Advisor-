@@ -6,12 +6,42 @@ import { AddFarmModal } from '../components/AddFarmModal.jsx'
 import { RiskBadge, TrendBadge } from '../components/ui/Badges.jsx'
 import { formatTime, formatSensor } from '../lib/utils.js'
 
+function riskColor(level) {
+  return { LOW: '#45D483', MEDIUM: '#F5B942', HIGH: '#FF554D', CRITICAL: '#FF2D78' }[level] || 'var(--text-muted)'
+}
+
+function riskBg(level) {
+  return {
+    LOW: 'rgba(69,212,131,0.07)', MEDIUM: 'rgba(245,185,66,0.07)',
+    HIGH: 'rgba(255,85,77,0.07)', CRITICAL: 'rgba(255,45,120,0.07)',
+  }[level] || 'var(--bg-elevated)'
+}
+
+function riskBorder(level) {
+  return {
+    LOW: 'rgba(69,212,131,0.22)', MEDIUM: 'rgba(245,185,66,0.22)',
+    HIGH: 'rgba(255,85,77,0.22)', CRITICAL: 'rgba(255,45,120,0.28)',
+  }[level] || 'var(--border)'
+}
+
 export default function FarmsList() {
   const navigate = useNavigate()
   const { data: farms = [], isLoading } = useFarms()
   const [modalOpen, setModalOpen] = useState(false)
+  const [filterRisk, setFilterRisk] = useState('all')
 
   const handleFarmCreated = (newFarm) => navigate(`/farms/${newFarm.id}`)
+
+  const sorted = [...farms]
+    .filter(f => {
+      if (filterRisk === 'all') return true
+      return (f.riskAssessments?.[0]?.riskLevel || 'UNKNOWN') === filterRisk
+    })
+    .sort((a, b) => {
+      const sa = a.riskAssessments?.[0]?.riskScore ?? 0
+      const sb = b.riskAssessments?.[0]?.riskScore ?? 0
+      return sb - sa
+    })
 
   return (
     <div style={{ padding: '1.5rem', maxWidth: 1100, margin: '0 auto' }}>
@@ -27,6 +57,29 @@ export default function FarmsList() {
           <Plus size={14} /> Add New Farm
         </button>
       </div>
+
+      {/* Risk filter pills */}
+      {farms.length > 0 && (
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.25rem', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', flexShrink: 0 }}>Filter:</span>
+          {[
+            { key: 'all',      label: 'All',      cls: 'active-all',      count: farms.length },
+            { key: 'CRITICAL', label: 'Critical', cls: 'active-critical', count: farms.filter(f => f.riskAssessments?.[0]?.riskLevel === 'CRITICAL').length },
+            { key: 'HIGH',     label: 'High',     cls: 'active-high',     count: farms.filter(f => f.riskAssessments?.[0]?.riskLevel === 'HIGH').length },
+            { key: 'MEDIUM',   label: 'Medium',   cls: 'active-medium',   count: farms.filter(f => f.riskAssessments?.[0]?.riskLevel === 'MEDIUM').length },
+            { key: 'LOW',      label: 'Low',      cls: 'active-low',      count: farms.filter(f => f.riskAssessments?.[0]?.riskLevel === 'LOW').length },
+          ].map(({ key, label, cls, count }) => (
+            <button
+              key={key}
+              onClick={() => setFilterRisk(key)}
+              className={`risk-filter-pill${filterRisk === key ? ' ' + cls : ''}`}
+            >
+              {label}
+              <span style={{ opacity: 0.7 }}>({count})</span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {isLoading && <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Loading farms…</p>}
 
@@ -53,7 +106,7 @@ export default function FarmsList() {
               </tr>
             </thead>
             <tbody>
-              {farms.map((farm) => {
+              {sorted.map((farm) => {
                 const risk    = farm.riskAssessments?.[0]
                 const reading = farm.readings?.[0]
                 return (
@@ -65,7 +118,7 @@ export default function FarmsList() {
                     onClick={() => navigate(`/farms/${farm.id}`)}
                   >
                     <td style={{ padding: '0.875rem 1rem' }}>
-                      <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{farm.farmName}</div>
+                      <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '1.0625rem' }}>{farm.farmName}</div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>{farm.farmerName}</div>
                     </td>
                     <td style={{ padding: '0.875rem 1rem', color: 'var(--text-secondary)' }}>{farm.district}</td>
@@ -90,7 +143,12 @@ export default function FarmsList() {
                       ) : <span style={{ color: 'var(--text-muted)' }}>—</span>}
                     </td>
                     <td style={{ padding: '0.875rem 1rem', fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
-                      {reading ? formatTime(reading.timestamp) : <span style={{ color: 'var(--border)' }}>No readings yet</span>}
+                      {reading ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{formatTime(reading.timestamp)}</span>
+                          <span style={{ fontSize: '0.6875rem' }}>1 reading total</span>
+                        </div>
+                      ) : <span style={{ color: 'var(--border)' }}>No readings yet</span>}
                     </td>
                     <td style={{ padding: '0.875rem 1rem', color: 'var(--text-muted)' }}>
                       <ChevronRight size={15} />

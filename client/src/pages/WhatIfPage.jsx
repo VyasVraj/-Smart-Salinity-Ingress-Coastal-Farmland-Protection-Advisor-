@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import { Activity, ChevronRight } from 'lucide-react'
 import { useFarms } from '../hooks/useFarm.js'
 import { api } from '../lib/api.js'
@@ -15,7 +16,7 @@ const SCENARIOS = [
 ]
 
 function riskCol(level) {
-  return { LOW: 'var(--risk-low)', MEDIUM: 'var(--risk-medium)', HIGH: 'var(--risk-high)', CRITICAL: 'var(--risk-critical)' }[level] || 'var(--text-muted)'
+  return { LOW: '#45D483', MEDIUM: '#F5B942', HIGH: '#FF554D', CRITICAL: '#FF2D78' }[level] || 'var(--text-muted)'
 }
 
 function CompareRow({ label, current, simulated, unit = '', invertGood = false }) {
@@ -63,6 +64,12 @@ export default function WhatIfPage() {
         </p>
       </div>
 
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', padding: '0.625rem 1rem', background: 'rgba(139,92,246,0.06)', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 8, marginBottom: '1.25rem' }}>
+        <span style={{ fontSize: '0.875rem' }}>⚗</span>
+        <span style={{ fontSize: '0.8125rem', color: '#A78BFA', fontWeight: 600 }}>What-If Scenario Simulator</span>
+        <span className="data-badge-sim" style={{ marginLeft: 'auto' }}>Simulation Mode</span>
+      </div>
+
       {/* Controls */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.75rem', marginBottom: '1.25rem' }}>
         <div>
@@ -84,23 +91,19 @@ export default function WhatIfPage() {
       {/* Scenarios */}
       <div style={{ marginBottom: '1.25rem' }}>
         <div className="section-label" style={{ marginBottom: '0.625rem' }}>Select Scenario</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '0.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '0.625rem' }}>
           {SCENARIOS.map(s => (
             <button
               key={s.id}
               onClick={() => setSelectedScenario(s.id)}
-              style={{
-                textAlign: 'left', padding: '0.875rem', borderRadius: 9,
-                border: `1px solid ${selectedScenario === s.id ? 'rgba(45,212,191,0.4)' : 'var(--border)'}`,
-                background: selectedScenario === s.id ? 'rgba(45,212,191,0.06)' : 'var(--bg-elevated)',
-                cursor: 'pointer', transition: 'border-color 0.15s, background 0.15s',
-              }}
+              className={`scenario-card${selectedScenario === s.id ? ' selected' : ''}`}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                <span>{s.icon}</span>
-                <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>{s.label}</span>
-              </div>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>{s.desc}</p>
+              <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>{s.icon}</div>
+              <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.25rem', lineHeight: 1.3 }}>{s.label}</div>
+              <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>{s.desc}</div>
+              {selectedScenario === s.id && (
+                <div style={{ marginTop: '0.5rem', fontSize: '0.625rem', fontWeight: 700, color: 'var(--accent-cyan)', letterSpacing: '0.06em' }}>● SELECTED</div>
+              )}
             </button>
           ))}
         </div>
@@ -157,6 +160,59 @@ export default function WhatIfPage() {
             <CompareRow label="Crop Risk"      current={result.current?.cropVulnerability} simulated={result.simulated?.cropVulnerability} />
             <CompareRow label="Water Stress"   current={result.current?.waterStress}   simulated={result.simulated?.waterStress} />
           </div>
+
+          {/* Risk Score Chart */}
+          {result.current?.riskScore != null && result.simulated?.riskScore != null && (
+            <div className="card" style={{ padding: '1.125rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.875rem' }}>
+                <div className="section-label">Risk Score Impact</div>
+                <span className="data-badge-model">◌ Simulation Estimate</span>
+              </div>
+              <ResponsiveContainer width="100%" height={140}>
+                <BarChart
+                  data={[
+                    { name: 'Current', value: result.current.riskScore, fill: riskCol(result.current.riskLevel) },
+                    { name: 'After Intervention', value: result.simulated.riskScore, fill: riskCol(result.simulated.riskLevel) },
+                  ]}
+                  margin={{ top: 5, right: 10, left: -20, bottom: 5 }}
+                >
+                  <XAxis dataKey="name" tick={{ fill: 'var(--text-muted)', fontSize: 12 }} tickLine={false} axisLine={false} />
+                  <YAxis domain={[0, 100]} tick={{ fill: 'var(--text-muted)', fontSize: 11 }} tickLine={false} axisLine={false} />
+                  <Tooltip
+                    contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, fontSize: '0.8125rem' }}
+                    labelStyle={{ color: 'var(--text-secondary)' }}
+                    formatter={(value, name) => [`${value}/100`, name]}
+                  />
+                  <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                    {[
+                      { name: 'Current', fill: riskCol(result.current.riskLevel) },
+                      { name: 'After Intervention', fill: riskCol(result.simulated.riskLevel) },
+                    ].map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} fillOpacity={0.85} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+              {/* Risk reduction summary */}
+              {result.current.riskScore > result.simulated.riskScore && (
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '1.5rem', marginTop: '0.5rem', padding: '0.625rem', background: 'rgba(69,212,131,0.06)', borderRadius: 8, border: '1px solid rgba(69,212,131,0.15)' }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#45D483', lineHeight: 1 }}>
+                      −{result.current.riskScore - result.simulated.riskScore}
+                    </div>
+                    <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)', marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Risk Points</div>
+                  </div>
+                  <div style={{ width: 1, background: 'var(--border)' }} />
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#45D483', lineHeight: 1 }}>
+                      −{Math.round(((result.current.riskScore - result.simulated.riskScore) / result.current.riskScore) * 100)}%
+                    </div>
+                    <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)', marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Reduction</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* AI Explanation */}
           {result.graniteExplanation && (
