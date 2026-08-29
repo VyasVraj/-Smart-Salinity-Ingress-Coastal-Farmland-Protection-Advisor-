@@ -42,11 +42,12 @@ const TYPE_CONFIG = {
 }
 
 const AGENT_ICONS = {
-  MonitoringAgent:      '🔬',
-  CropAdvisoryAgent:    '🌾',
-  IrrigationAgent:      '💧',
-  LandReclamationAgent: '🌱',
-  FarmerAlertAgent:     '🚨',
+  MonitoringAgent:              '🔬',
+  CropAdvisoryAgent:            '🌾',
+  IrrigationAgent:              '💧',
+  LandReclamationAgent:         '🌱',
+  FarmerAlertAgent:             '🚨',
+  CoastalFarmlandHealthAgent:   '🏝️',
 }
 
 // ── Filter definitions (ordered) ─────────────────────────────────────────────

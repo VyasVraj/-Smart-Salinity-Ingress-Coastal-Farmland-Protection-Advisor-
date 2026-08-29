@@ -6,7 +6,11 @@
  *
  * Supports two generation modes:
  *   - generateText()  : /ml/v1/text/generation  (legacy Granite models)
- *   - generateChat()  : /ml/v1/text/chat         (Granite 3.x+ instruction models)
+ *   - generateChat()  : /ml/v1/text/chat         (Granite 3.x+ / granite-4 instruction models)
+ *
+ * NOTE: granite-4-h-small and granite-3.x are chat-native models.
+ * Prefer generateChat() for all current Granite models.
+ * generateText() is retained for legacy compatibility only.
  */
 
 import { config, isIBMConfigured } from '../config/env.js'
@@ -47,7 +51,7 @@ async function getIAMToken() {
 
 /**
  * Generate free-form text via IBM watsonx.ai text/generation endpoint.
- * Best for models that use a raw prompt format (e.g. granite-13b).
+ * Retained for legacy compatibility. granite-4-h-small prefers generateChat().
  *
  * @param {string} prompt - full formatted prompt
  * @param {object} params - generation parameters
@@ -151,16 +155,8 @@ export async function generateChat(messages, params = {}) {
   })
 
   if (!response.ok) {
-    const text = await response.text()
-    // If chat endpoint not supported, try falling back to text generation
-    if (response.status === 404 || response.status === 400) {
-      console.warn('[IBM AI] Chat endpoint failed, falling back to text generation...')
-      const flatPrompt = messages
-        .map(m => `${m.role === 'system' ? '<|system|>' : m.role === 'user' ? '<|user|>' : '<|assistant|>'}\n${m.content}`)
-        .join('\n') + '\n<|assistant|>\n'
-      return generateText(flatPrompt, params)
-    }
-    const errMsg = `IBM watsonx.ai chat error (${response.status}): ${text.slice(0, 400)}`
+    const errorBody = await response.text()
+    const errMsg = `IBM watsonx.ai chat error (${response.status}): ${errorBody.slice(0, 400)}`
     console.error('[IBM AI]', errMsg)
     throw new Error(errMsg)
   }

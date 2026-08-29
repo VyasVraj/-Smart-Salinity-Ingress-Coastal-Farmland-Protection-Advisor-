@@ -74,14 +74,50 @@ fastify.get('/api/health', async () => ({
   environment: config.nodeEnv,
 }))
 
-fastify.get('/api/ai/health', async () => ({
-  configured: isIBMConfigured(),
-  provider: 'IBM watsonx.ai',
-  model: config.ibm.modelId,
-  projectConfigured: !!config.ibm.projectId,
-  apiKeyConfigured: !!config.ibm.apiKey,
-  url: config.ibm.aiUrl,
-}))
+fastify.get('/api/ai/health', async () => {
+  const configured = isIBMConfigured()
+  return {
+    configured,
+    provider: 'IBM watsonx.ai',
+    model: config.ibm.modelId || 'not set',
+    projectId: config.ibm.projectId ? 'configured' : 'not set',
+    // "connected" means credentials are present; actual reachability is verified by /api/ai/test
+    status: configured ? 'connected' : 'unconfigured',
+  }
+})
+
+/**
+ * GET /api/ai/test
+ * Sends a minimal real request to IBM Granite to verify end-to-end connectivity.
+ * Returns the actual result or a classified error — never fakes success.
+ * Safe: no credentials in response, minimal token usage.
+ */
+fastify.get('/api/ai/test', async () => {
+  const { callGraniteChat } = await import('./ai/graniteService.js')
+  if (!isIBMConfigured()) {
+    return { success: false, reason: 'NOT_CONFIGURED', message: 'IBM credentials are not set in .env' }
+  }
+  const result = await callGraniteChat(
+    'You are a helpful agricultural assistant. Respond in one concise sentence.',
+    'What is soil salinity?',
+    { params: { max_new_tokens: 60, temperature: 0.3 } }
+  )
+  if (result.success) {
+    return {
+      success: true,
+      model: config.ibm.modelId,
+      endpoint: config.ibm.aiUrl,
+      response: result.text,
+    }
+  }
+  return {
+    success: false,
+    model: config.ibm.modelId,
+    endpoint: config.ibm.aiUrl,
+    errorType: result.errorType,
+    message: result.error,
+  }
+})
 
 // ---- Graceful shutdown ----
 const shutdown = async (signal) => {
@@ -140,6 +176,7 @@ try {
   console.log(`   IBM Granite: ${isIBMConfigured() ? '✓ Configured' : '✗ Not configured (demo mode)'}`)
   console.log(`   API:         http://localhost:${config.port}/api/health`)
   console.log(`   AI Health:   http://localhost:${config.port}/api/ai/health`)
+  console.log(`   AI Test:     http://localhost:${config.port}/api/ai/test`)
   logIBMDiagnostics()
 } catch (err) {
   fastify.log.error(err)

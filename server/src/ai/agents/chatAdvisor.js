@@ -122,14 +122,16 @@ Please respond in ${langLabel} only.`
   // IBM configured but call failed — return meaningful error (not demo)
   console.error('[IBM AI] Chat call failed:', result.errorType, result.error)
 
+  // Keys must match the errorType values returned by classifyError() in graniteService.js:
+  // AUTH | FORBIDDEN | MODEL_NOT_FOUND | RATE_LIMIT | TIMEOUT | NETWORK_ERROR | UNKNOWN
   const errorMessages = {
-    AUTH: `IBM Granite authentication failed. The API key may be invalid or expired. Please check your IBM_WATSON_API_KEY configuration.\n\nFarm ${farm.farmName} is at ${latestRisk?.riskLevel || 'UNKNOWN'} risk with ${latestRisk?.trend || 'UNKNOWN'} trend.`,
-    FORBIDDEN: `IBM Granite access denied. Please verify your IBM_PROJECT_ID is correct and that your account has access to this project.\n\nFarm ${farm.farmName} current risk: ${latestRisk?.riskLevel || 'UNKNOWN'}.`,
-    NOT_FOUND: `IBM Granite model not found. The configured model ID (${process.env.IBM_GRANITE_MODEL_ID || 'ibm/granite-13b-instruct-v2'}) may be unavailable or deprecated. Try updating IBM_GRANITE_MODEL_ID in your .env file.`,
-    RATE_LIMIT: `IBM watsonx.ai rate limit reached. Please wait a moment and try again.`,
-    TIMEOUT: `IBM Granite request timed out. The service may be under load. Please try again.\n\nFarm ${farm.farmName} is at ${latestRisk?.riskLevel || 'UNKNOWN'} risk.`,
-    NETWORK: `Cannot connect to IBM watsonx.ai. Please check your internet connection and verify IBM_WATSON_AI_URL is correct.`,
-    UNAVAILABLE: `IBM watsonx.ai is temporarily unavailable. Please try again in a few minutes.`,
+    AUTH:            `IBM Granite authentication failed. The API key may be invalid or expired. Please check your IBM_WATSON_API_KEY.\n\nFarm: ${farm.farmName} · Risk: ${latestRisk?.riskLevel || 'UNKNOWN'} · Trend: ${latestRisk?.trend || 'UNKNOWN'}`,
+    FORBIDDEN:       `IBM Granite access denied. Please verify your IBM_PROJECT_ID is correct and your account has access to this project.\n\nFarm: ${farm.farmName} · Risk: ${latestRisk?.riskLevel || 'UNKNOWN'}`,
+    MODEL_NOT_FOUND: `IBM Granite model unavailable. The model ID "${process.env.IBM_GRANITE_MODEL_ID || 'ibm/granite-4-h-small'}" was not found in your watsonx.ai project/region. Update IBM_GRANITE_MODEL_ID in your .env file to a model available to your project.\n\nFarm: ${farm.farmName} · Risk: ${latestRisk?.riskLevel || 'UNKNOWN'}`,
+    RATE_LIMIT:      `IBM watsonx.ai rate limit reached. Please wait a moment and try again.`,
+    TIMEOUT:         `IBM Granite request timed out. The service may be under load — please try again.\n\nFarm: ${farm.farmName} · Risk: ${latestRisk?.riskLevel || 'UNKNOWN'}`,
+    NETWORK_ERROR:   `Cannot connect to IBM watsonx.ai. Check your internet connection and verify IBM_WATSON_AI_URL is correct.`,
+    UNKNOWN:         `IBM Granite request failed. Please check your configuration and try again.\n\nFarm: ${farm.farmName} · Risk: ${latestRisk?.riskLevel || 'UNKNOWN'}`,
   }
 
   const errorAnswer = errorMessages[result.errorType]

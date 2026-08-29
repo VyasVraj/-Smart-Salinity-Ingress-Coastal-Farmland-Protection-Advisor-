@@ -45,6 +45,79 @@ async function withFallback(apiFn, fallbackFn) {
 
 // ---- Demo fallback helpers ----
 
+/**
+ * Derive a health summary from DEMO_FARMS data without hard-coding farm IDs.
+ * Maps risk level → overallHealth, etc.
+ */
+function demoHealthSummary(farmId) {
+  const farm = DEMO_FARMS.find(f => f.id === farmId) ?? DEMO_FARMS[0]
+  const ra = farm.riskAssessments?.[0]
+  const reading = farm.readings?.[0]
+  const riskLevel = ra?.riskLevel ?? 'UNKNOWN'
+  const riskScore = ra?.riskScore ?? 50
+
+  const healthMap = {
+    LOW:      { overallHealth: 'GOOD',     healthScore: Math.max(65, 100 - riskScore), urgency: 'LOW' },
+    MEDIUM:   { overallHealth: 'WATCH',    healthScore: Math.max(40, 100 - riskScore), urgency: 'MEDIUM' },
+    HIGH:     { overallHealth: 'AT_RISK',  healthScore: Math.max(15, 100 - riskScore), urgency: 'HIGH' },
+    CRITICAL: { overallHealth: 'CRITICAL', healthScore: Math.max(5,  100 - riskScore), urgency: 'CRITICAL' },
+    UNKNOWN:  { overallHealth: 'WATCH',    healthScore: 50,                            urgency: 'MEDIUM' },
+  }
+  const { overallHealth, healthScore, urgency } = healthMap[riskLevel] || healthMap.UNKNOWN
+  const soilEC = reading?.soilEC ?? 0
+  const gwEC   = reading?.groundwaterEC ?? 0
+  const tds    = reading?.tds ?? 0
+  const trend  = ra?.trend ?? 'STABLE'
+
+  const trendPhrases = {
+    IMPROVING:         'Salinity trend is improving — recent readings show decreasing levels.',
+    STABLE:            'Salinity trend is stable with no significant directional change.',
+    WORSENING:         'Salinity trend is worsening — levels are increasing over recent readings.',
+    RAPIDLY_WORSENING: 'Salinity is increasing rapidly — urgent intervention required.',
+  }
+
+  const topActions =
+    riskLevel === 'CRITICAL' || riskLevel === 'HIGH'
+      ? ['Stop irrigating with high-EC water immediately', 'Test alternative water sources', 'Consider gypsum application after soil test']
+      : riskLevel === 'MEDIUM'
+        ? ['Reduce irrigation frequency if possible', 'Monitor soil EC weekly', 'Evaluate salt-tolerant crop varieties']
+        : ['Continue regular bi-weekly monitoring', 'Maintain current irrigation practices', 'Record baseline data for comparison']
+
+  return {
+    id: `demo-hs-${farm.id}`,
+    farmId: farm.id,
+    type: 'HEALTH_SUMMARY',
+    language: 'en',
+    createdAt: new Date().toISOString(),
+    content: {
+      overallHealth,
+      healthScore,
+      salinityStatus: soilEC < 2
+        ? `Soil EC ${soilEC} dS/m and groundwater EC ${gwEC} dS/m are within safe limits.`
+        : `Soil EC ${soilEC} dS/m is elevated. Groundwater EC ${gwEC} dS/m requires monitoring.`,
+      mainRisk: riskLevel === 'CRITICAL' ? 'Severe salinity ingress threatening crop survival'
+        : riskLevel === 'HIGH' ? 'Elevated salinity causing significant crop stress'
+        : riskLevel === 'MEDIUM' ? 'Moderate salinity accumulation requiring active management'
+        : 'Low salinity — routine monitoring sufficient',
+      trendSummary: trendPhrases[trend] ?? 'Trend data insufficient.',
+      keyFindings: [
+        `Soil EC: ${soilEC} dS/m`,
+        `Groundwater EC: ${gwEC} dS/m`,
+        `TDS: ${tds} ppm — Risk: ${riskLevel}`,
+      ],
+      topActions,
+      urgency,
+      monitoringRecommendation: urgency === 'CRITICAL' || urgency === 'HIGH'
+        ? 'Daily readings strongly recommended.'
+        : urgency === 'MEDIUM'
+          ? 'Weekly readings recommended.'
+          : 'Bi-weekly readings are sufficient.',
+      confidenceNote: '[DEMO DATA] Configure IBM watsonx.ai for AI-powered analysis.',
+      disclaimer: 'AI-generated health summary. Validate with field measurements and consult local agricultural experts.',
+    },
+  }
+}
+
 function demoFarmList() {
   return DEMO_FARMS
 }
@@ -209,6 +282,8 @@ export const api = {
     whatIf:          (farmId, sc, lg = 'en') => withFallback(() => request(`/farms/${farmId}/what-if`, { method: 'POST', body: JSON.stringify({ scenario: sc, language: lg }) }), () => demoWhatIf(farmId, sc)),
     mapRisk:         ()               => withFallback(() => request('/map/risk'),                           demoMapRisk),
     scenarios:       ()               => withFallback(() => request('/what-if/scenarios'),                  () => ({ scenarios: [{ id: 'IMPROVE_IRRIGATION', label: 'Improve Irrigation', description: 'Demo' }, { id: 'SWITCH_CROP', label: 'Switch Crop', description: 'Demo' }, { id: 'IMPROVE_DRAINAGE', label: 'Improve Drainage', description: 'Demo' }, { id: 'COMBINED', label: 'Combined', description: 'Demo' }] })),
+    healthSummary:   (farmId)         => withFallback(() => request(`/farms/${farmId}/health-summary`),     () => demoHealthSummary(farmId)),
+    aiHealth:        ()               => withFallback(() => request('/ai/health'),                           () => ({ configured: false, status: 'unconfigured', provider: 'IBM watsonx.ai', model: 'not set', projectId: 'not set' })),
   },
 
   health: () => withFallback(() => request('/health'), () => ({ status: 'demo', ibmConfigured: false, environment: 'demo' })),

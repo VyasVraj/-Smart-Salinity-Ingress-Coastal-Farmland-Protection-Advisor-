@@ -13,6 +13,7 @@ import { runCropAdvisoryAgent } from './agents/cropAdvisoryAgent.js'
 import { runIrrigationAgent } from './agents/irrigationAgent.js'
 import { runLandReclamationAgent } from './agents/landReclamationAgent.js'
 import { runFarmerAlertAgent } from './agents/farmerAlertAgent.js'
+import { runCoastalFarmlandHealthAgent } from './agents/coastalFarmlandHealthAgent.js'
 
 const AGENT_MAP = {
   MonitoringAgent: runMonitoringAgent,
@@ -130,11 +131,88 @@ export async function orchestrate({ farm, reading, riskResult, riskAssessmentId,
     }
   }
 
+  // ── Health Agent (always runs after specialist agents) ────────────────────
+  try {
+    // Fetch fresh context: recent advisories + active alerts
+    const [recentAdvisories, activeAlerts] = await Promise.all([
+      prisma.advisory.findMany({
+        where: { farmId: farm.id },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+      }),
+      prisma.alert.findMany({
+        where: { farmId: farm.id, status: 'ACTIVE' },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      }),
+    ])
+
+    const healthContext = {
+      farm,
+      latestReading: reading,
+      riskAssessment: riskResult,
+      recentAdvisories,
+      activeAlerts,
+    }
+
+    emit(io, farm.id, 'agent:started', { agentName: 'CoastalFarmlandHealthAgent', farmId: farm.id })
+
+    const healthAgentRun = await prisma.agentRun.create({
+      data: {
+        farmId: farm.id,
+        readingId: reading.id,
+        agentName: 'CoastalFarmlandHealthAgent',
+        triggerReason: `Risk: ${riskResult.riskLevel}, Trend: ${riskResult.trend}`,
+        status: 'RUNNING',
+        inputSummary: JSON.stringify({
+          riskLevel: riskResult.riskLevel,
+          trend: riskResult.trend,
+          soilEC: reading.soilEC,
+          groundwaterEC: reading.groundwaterEC,
+          advisoriesCount: recentAdvisories.length,
+          activeAlertsCount: activeAlerts.length,
+        }),
+        outputSummary: null,
+      },
+    })
+
+    const healthResult = await runCoastalFarmlandHealthAgent(healthContext)
+
+    await prisma.agentRun.update({
+      where: { id: healthAgentRun.id },
+      data: {
+        status: 'COMPLETED',
+        outputSummary: JSON.stringify(healthResult.output).slice(0, 1000),
+      },
+    })
+
+    const healthAdvisory = await prisma.advisory.create({
+      data: {
+        farmId: farm.id,
+        riskAssessmentId,
+        type: 'HEALTH_SUMMARY',
+        language: 'en',
+        content: JSON.stringify(healthResult.output),
+      },
+    })
+
+    emit(io, farm.id, 'agent:completed', {
+      agentName: 'CoastalFarmlandHealthAgent',
+      farmId: farm.id,
+      advisoryId: healthAdvisory.id,
+      type: 'HEALTH_SUMMARY',
+      isDemo: healthResult.isDemo,
+    })
+  } catch (err) {
+    console.error('[Orchestrator] CoastalFarmlandHealthAgent failed:', err.message)
+    // Non-fatal — specialist agents already completed successfully
+  }
+
   emit(io, farm.id, 'orchestrator:completed', {
     farmId: farm.id,
     farmName: farm.farmName,
     riskLevel: riskResult.riskLevel,
-    agentsRan: agentsToRun,
+    agentsRan: [...agentsToRun, 'CoastalFarmlandHealthAgent'],
   })
 }
 

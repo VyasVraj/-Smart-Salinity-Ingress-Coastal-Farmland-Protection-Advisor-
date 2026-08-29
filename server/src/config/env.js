@@ -21,8 +21,11 @@ export const config = {
 }
 
 export const isIBMConfigured = () => {
-  return !!(config.ibm.projectId && config.ibm.projectId.trim() &&
-            config.ibm.apiKey    && config.ibm.apiKey.trim())
+  return !!(
+    config.ibm.projectId && config.ibm.projectId.trim() &&
+    config.ibm.apiKey    && config.ibm.apiKey.trim()    &&
+    config.ibm.aiUrl     && config.ibm.aiUrl.trim()
+  )
 }
 
 /**

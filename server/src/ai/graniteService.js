@@ -15,18 +15,19 @@ import { isIBMConfigured } from '../config/env.js'
 const TIMEOUT_MS = 60000
 
 /**
- * Classify IBM API errors into user-friendly categories
+ * Classify IBM API errors into standard categories.
+ * Types: AUTH | FORBIDDEN | MODEL_NOT_FOUND | RATE_LIMIT | TIMEOUT | NETWORK_ERROR | UNKNOWN
  */
 function classifyError(err) {
   const msg = err.message || ''
-  if (msg.includes('credentials not configured')) return { type: 'CONFIG', message: 'IBM watsonx.ai credentials not configured' }
-  if (msg.includes('IAM authentication failed') || msg.includes('401')) return { type: 'AUTH', message: 'IBM API key authentication failed — check IBM_WATSON_API_KEY' }
-  if (msg.includes('403')) return { type: 'FORBIDDEN', message: 'Access denied — verify IBM_PROJECT_ID and account permissions' }
-  if (msg.includes('404')) return { type: 'NOT_FOUND', message: 'Model or endpoint not found — check IBM_GRANITE_MODEL_ID and IBM_WATSON_AI_URL' }
-  if (msg.includes('429')) return { type: 'RATE_LIMIT', message: 'IBM watsonx.ai rate limit reached — try again shortly' }
-  if (msg.includes('503') || msg.includes('502')) return { type: 'UNAVAILABLE', message: 'IBM watsonx.ai service temporarily unavailable' }
+  if (msg.includes('credentials not configured')) return { type: 'AUTH', message: 'IBM watsonx.ai credentials not configured' }
+  if (msg.includes('IAM authentication failed') || msg.includes('(401)')) return { type: 'AUTH', message: 'IBM API key authentication failed — check IBM_WATSON_API_KEY' }
+  if (msg.includes('(403)')) return { type: 'FORBIDDEN', message: 'Access denied — verify IBM_PROJECT_ID and account permissions' }
+  if (msg.includes('(404)')) return { type: 'MODEL_NOT_FOUND', message: 'Model or endpoint not found — check IBM_GRANITE_MODEL_ID and IBM_WATSON_AI_URL' }
+  if (msg.includes('(429)')) return { type: 'RATE_LIMIT', message: 'IBM watsonx.ai rate limit reached — try again shortly' }
+  if (msg.includes('(503)') || msg.includes('(502)')) return { type: 'NETWORK_ERROR', message: 'IBM watsonx.ai service temporarily unavailable' }
   if (msg.includes('timed out')) return { type: 'TIMEOUT', message: 'IBM Granite request timed out (60s)' }
-  if (msg.includes('fetch failed') || msg.includes('ENOTFOUND') || msg.includes('ECONNREFUSED')) return { type: 'NETWORK', message: 'Cannot reach IBM watsonx.ai — check network connectivity' }
+  if (msg.includes('fetch failed') || msg.includes('ENOTFOUND') || msg.includes('ECONNREFUSED')) return { type: 'NETWORK_ERROR', message: 'Cannot reach IBM watsonx.ai — check network connectivity' }
   return { type: 'UNKNOWN', message: msg.slice(0, 300) }
 }
 
@@ -68,7 +69,7 @@ export async function callGranite(prompt, options = {}) {
   } catch (err) {
     clearTimeout(timeoutId)
     const classified = classifyError(err)
-    console.error(`[IBM AI] ${classified.type} error:`, classified.message)
+    console.error(`[IBM AI] callGranite failed [${classified.type}]:`, classified.message)
     return { success: false, data: null, raw: '', isDemo: false, error: classified.message, errorType: classified.type }
   }
 }
@@ -114,7 +115,7 @@ export async function callGraniteChat(systemPrompt, userMessage, options = {}) {
   } catch (err) {
     clearTimeout(timeoutId)
     const classified = classifyError(err)
-    console.error(`[IBM AI] ${classified.type} error:`, classified.message)
+    console.error(`[IBM AI] callGraniteChat failed [${classified.type}]:`, classified.message)
     return { success: false, text: '', isDemo: false, error: classified.message, errorType: classified.type }
   }
 }

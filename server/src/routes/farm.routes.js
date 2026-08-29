@@ -154,6 +154,19 @@ export async function farmRoutes(fastify) {
     return readings
   })
 
+  // GET /api/farms/:id/health-summary - latest HEALTH_SUMMARY advisory
+  fastify.get('/api/farms/:id/health-summary', async (req, reply) => {
+    const advisory = await prisma.advisory.findFirst({
+      where: { farmId: req.params.id, type: 'HEALTH_SUMMARY' },
+      orderBy: { createdAt: 'desc' },
+    })
+    if (!advisory) return reply.code(404).send({ error: 'No health summary yet' })
+
+    let parsed = null
+    try { parsed = JSON.parse(advisory.content) } catch {}
+    return { ...advisory, content: parsed ?? advisory.content }
+  })
+
   // GET /api/farms/:id/advisories - advisories for farm
   fastify.get('/api/farms/:id/advisories', async (req, reply) => {
     const advisories = await prisma.advisory.findMany({
