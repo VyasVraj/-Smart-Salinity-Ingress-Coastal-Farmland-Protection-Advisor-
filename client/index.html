@@ -5,6 +5,19 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Salinity Shield AI — Coastal Farmland Protection</title>
+    <style>
+      /* Leaflet popup — strip default white wrapper so our dark HTML content shows cleanly */
+      .salinity-popup .leaflet-popup-content-wrapper,
+      .salinity-popup .leaflet-popup-tip {
+        background: transparent;
+        box-shadow: none;
+        padding: 0;
+        border-radius: 8px;
+      }
+      .salinity-popup .leaflet-popup-content {
+        margin: 0;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>

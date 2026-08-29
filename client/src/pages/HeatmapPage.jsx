@@ -1,24 +1,16 @@
 /**
  * Coastal Salinity Risk Heatmap — Feature 4
- * SVG-based interactive map of Gujarat coastal farms
+ * Leaflet + OpenStreetMap interactive map of Gujarat coastal farms
  */
-import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { Map, X, AlertTriangle, TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Map, X, AlertTriangle, ExternalLink } from 'lucide-react'
 import { api } from '../lib/api.js'
+import { socket } from '../lib/socket.js'
 import { RiskBadge, TrendBadge } from '../components/ui/Badges.jsx'
 import { formatTime } from '../lib/utils.js'
-
-// Approximate Gujarat coastal bounding box for normalizing coordinates
-// Lat: 20.5 – 24.0, Lon: 68.0 – 73.5
-const MAP_BOUNDS = { minLat: 20.5, maxLat: 24.0, minLon: 68.0, maxLon: 73.5 }
-const MAP_W = 700, MAP_H = 440
-
-function latLonToXY(lat, lon) {
-  const x = ((lon - MAP_BOUNDS.minLon) / (MAP_BOUNDS.maxLon - MAP_BOUNDS.minLon)) * MAP_W
-  const y = ((MAP_BOUNDS.maxLat - lat) / (MAP_BOUNDS.maxLat - MAP_BOUNDS.minLat)) * MAP_H
-  return { x, y }
-}
+import LeafletRiskMap from '../components/LeafletRiskMap.jsx'
 
 const RISK_COLORS = {
   LOW:      '#22c55e',
@@ -30,47 +22,7 @@ const RISK_COLORS = {
 
 const RISK_LABELS = { LOW: 'Low', MEDIUM: 'Medium', HIGH: 'High', CRITICAL: 'Critical', UNKNOWN: 'Unknown' }
 
-// Simplified Gujarat coastal outline points (approximate SVG path)
-const GUJARAT_COAST_PATH = `
-  M 420,10 L 450,30 L 480,40 L 510,60 L 530,90 L 540,120 L 520,150 L 490,180
-  L 460,200 L 430,230 L 400,260 L 370,290 L 340,310 L 310,330 L 280,360
-  L 250,390 L 220,410 L 190,420 L 160,415 L 130,400 L 100,380 L 80,350
-  L 70,320 L 80,290 L 100,270 L 130,250 L 160,230 L 180,200 L 170,170
-  L 150,140 L 160,110 L 190,90 L 220,80 L 250,70 L 280,60 L 310,50 L 340,35 L 370,20 Z
-`
-
-// District label positions (approximate)
-const DISTRICT_LABELS = [
-  { name: 'Kutch',      x: 130, y: 120 },
-  { name: 'Jamnagar',   x: 250, y: 210 },
-  { name: 'Rajkot',     x: 340, y: 200 },
-  { name: 'Bhavnagar',  x: 400, y: 290 },
-  { name: 'Amreli',     x: 360, y: 340 },
-  { name: 'Surat',      x: 500, y: 370 },
-]
-
-function FarmMarker({ farm, onClick, isSelected }) {
-  const { x, y } = latLonToXY(farm.latitude, farm.longitude)
-  const color = RISK_COLORS[farm.riskLevel] || RISK_COLORS.UNKNOWN
-  const r = isSelected ? 10 : 7
-
-  return (
-    <g className="cursor-pointer" onClick={() => onClick(farm)}>
-      {isSelected && (
-        <circle cx={x} cy={y} r={r + 6} fill={color} fillOpacity={0.2} />
-      )}
-      <circle cx={x} cy={y} r={r} fill={color} fillOpacity={0.85} stroke="#1f2328" strokeWidth={1.5} />
-      {farm.riskLevel === 'CRITICAL' && (
-        <circle cx={x} cy={y} r={r + 3} fill="none" stroke={color} strokeWidth={1} strokeDasharray="2,2" />
-      )}
-      <text x={x} y={y - r - 3} textAnchor="middle" fontSize="9" fill="#e5e7eb" fontFamily="system-ui">
-        {farm.farmName.split(' ')[0]}
-      </text>
-    </g>
-  )
-}
-
-function FarmDetailPanel({ farm, onClose }) {
+function FarmDetailPanel({ farm, onClose, onViewDetails }) {
   if (!farm) return null
   return (
     <div className="card p-5 border-blue-500/30 bg-blue-500/5">
@@ -132,11 +84,21 @@ function FarmDetailPanel({ farm, onClose }) {
       {farm.lastUpdated && (
         <p className="text-xs text-gray-600 mt-2">Updated: {formatTime(farm.lastUpdated)}</p>
       )}
+
+      <button
+        onClick={() => onViewDetails(farm.id)}
+        className="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-medium bg-blue-600/20 border border-blue-600/30 text-blue-400 hover:bg-blue-600/30 transition-colors"
+      >
+        <ExternalLink size={12} />
+        View Farm Details
+      </button>
     </div>
   )
 }
 
 export default function HeatmapPage() {
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [selectedFarm, setSelectedFarm] = useState(null)
   const [filterDistrict, setFilterDistrict] = useState('all')
   const [filterRisk, setFilterRisk] = useState('all')
@@ -146,6 +108,19 @@ export default function HeatmapPage() {
     queryFn: api.analytics.mapRisk,
     refetchInterval: 30000,
   })
+
+  // Real-time: invalidate map data when risk, readings, or alerts change
+  useEffect(() => {
+    const refresh = () => queryClient.invalidateQueries({ queryKey: ['map-risk'] })
+    socket.on('risk:assessed',  refresh)
+    socket.on('reading:received', refresh)
+    socket.on('alert:created',  refresh)
+    return () => {
+      socket.off('risk:assessed',  refresh)
+      socket.off('reading:received', refresh)
+      socket.off('alert:created',  refresh)
+    }
+  }, [queryClient])
 
   const features = data?.features ?? []
   const regional = data?.regionalSummary ?? []
@@ -160,6 +135,13 @@ export default function HeatmapPage() {
   const totalFarms = features.length
   const summary = { LOW: 0, MEDIUM: 0, HIGH: 0, CRITICAL: 0 }
   for (const f of features) { if (summary[f.riskLevel] !== undefined) summary[f.riskLevel]++ }
+
+  // Keep selectedFarm in sync if its data updates after a refresh
+  useEffect(() => {
+    if (!selectedFarm) return
+    const updated = features.find(f => f.id === selectedFarm.id)
+    if (updated && updated !== selectedFarm) setSelectedFarm(updated)
+  }, [features]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="p-6 space-y-5">
@@ -213,7 +195,7 @@ export default function HeatmapPage() {
         <div className="lg:col-span-2 card p-4">
           <div className="flex items-center justify-between mb-3">
             <p className="text-xs text-gray-500 uppercase tracking-wide">Gujarat Coastal Region</p>
-            <div className="flex gap-3">
+            <div className="flex gap-3 flex-wrap">
               {Object.entries(RISK_COLORS).filter(([k]) => k !== 'UNKNOWN').map(([level, color]) => (
                 <div key={level} className="flex items-center gap-1 text-xs text-gray-500">
                   <div className="w-2 h-2 rounded-full" style={{ background: color }} />
@@ -224,42 +206,20 @@ export default function HeatmapPage() {
           </div>
 
           {isLoading ? (
-            <div className="flex items-center justify-center h-64 text-gray-600 text-sm">Loading map data...</div>
-          ) : (
-            <div className="overflow-auto">
-              <svg
-                viewBox={`0 0 ${MAP_W} ${MAP_H}`}
-                className="w-full bg-gray-950 rounded-lg"
-                style={{ minHeight: 300 }}
-              >
-                {/* Ocean background */}
-                <rect width={MAP_W} height={MAP_H} fill="#0c1a2e" rx={8} />
-
-                {/* Gujarat coastal region (simplified) */}
-                <path d={GUJARAT_COAST_PATH} fill="#1a2f1a" stroke="#2d4a2d" strokeWidth={1} fillOpacity={0.6} />
-
-                {/* District labels */}
-                {DISTRICT_LABELS.map(d => (
-                  <text key={d.name} x={d.x} y={d.y} fontSize="10" fill="#4b5563" fontFamily="system-ui" textAnchor="middle">
-                    {d.name}
-                  </text>
-                ))}
-
-                {/* Compass */}
-                <text x={MAP_W - 20} y={20} fontSize="12" fill="#374151" textAnchor="middle">N</text>
-                <line x1={MAP_W - 20} y1={22} x2={MAP_W - 20} y2={35} stroke="#374151" strokeWidth={1} />
-
-                {/* Farm markers */}
-                {filtered.map(farm => (
-                  <FarmMarker
-                    key={farm.id}
-                    farm={farm}
-                    onClick={setSelectedFarm}
-                    isSelected={selectedFarm?.id === farm.id}
-                  />
-                ))}
-              </svg>
+            <div className="flex items-center justify-center h-80 text-gray-600 text-sm rounded-lg bg-gray-900 border border-gray-800">
+              Loading farm locations…
             </div>
+          ) : filtered.length === 0 && !isLoading ? (
+            <div className="flex items-center justify-center h-80 text-gray-500 text-sm rounded-lg bg-gray-900 border border-gray-800">
+              No farms available for the selected filters.
+            </div>
+          ) : (
+            <LeafletRiskMap
+              farms={filtered}
+              selectedFarm={selectedFarm}
+              onFarmSelect={setSelectedFarm}
+              onViewDetails={(farmId) => navigate(`/farms/${farmId}`)}
+            />
           )}
           <p className="text-xs text-gray-600 mt-2 text-center">Click a farm marker to see details</p>
         </div>
@@ -267,7 +227,11 @@ export default function HeatmapPage() {
         {/* Right panel */}
         <div className="space-y-4">
           {selectedFarm ? (
-            <FarmDetailPanel farm={selectedFarm} onClose={() => setSelectedFarm(null)} />
+            <FarmDetailPanel
+              farm={selectedFarm}
+              onClose={() => setSelectedFarm(null)}
+              onViewDetails={(farmId) => navigate(`/farms/${farmId}`)}
+            />
           ) : (
             <div className="card p-4 text-center text-gray-600 text-sm">
               <Map size={24} className="mx-auto mb-2 opacity-30" />
