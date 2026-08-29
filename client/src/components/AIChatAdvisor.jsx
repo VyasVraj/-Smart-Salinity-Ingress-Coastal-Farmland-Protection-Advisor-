@@ -101,17 +101,26 @@ export function AIChatAdvisor({ farmId, farmName }) {
   return (
     <div className="flex flex-col h-[600px]">
       {/* Language selector */}
-      <div className="flex items-center gap-2 p-3 border-b border-gray-800">
-        <Bot size={16} className="text-blue-400" />
-        <span className="text-sm text-gray-400">Advisory Language:</span>
-        <div className="flex gap-1 ml-auto">
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem', borderBottom: '1px solid var(--border)' }}>
+        <Bot size={16} style={{ color: 'var(--accent-seafoam)' }} />
+        <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Advisory Language:</span>
+        <div style={{ display: 'flex', gap: '0.25rem', marginLeft: 'auto' }}>
           {Object.entries(LANG_CONFIG).map(([code, cfg]) => (
             <button
               key={code}
               onClick={() => setLanguage(code)}
-              className={`px-2.5 py-1 rounded text-xs font-medium transition-colors ${
-                language === code ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-              }`}
+              style={{
+                padding: '0.25rem 0.625rem',
+                borderRadius: 4,
+                fontSize: '0.75rem',
+                fontWeight: 500,
+                border: '1px solid transparent',
+                cursor: 'pointer',
+                transition: 'colors 0.15s',
+                background: language === code ? 'var(--accent-seafoam)' : 'var(--bg-elevated)',
+                color: language === code ? '#fff' : 'var(--text-muted)',
+                borderColor: language === code ? 'var(--accent-seafoam)' : 'var(--border)',
+              }}
             >
               {cfg.label}
             </button>
@@ -123,19 +132,27 @@ export function AIChatAdvisor({ farmId, farmName }) {
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((msg, i) => (
           <div key={i} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-            <div className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center ${
-              msg.role === 'user' ? 'bg-blue-600' : 'bg-gray-700'
-            }`}>
-              {msg.role === 'user' ? <User size={14} /> : <Bot size={14} className="text-blue-400" />}
+            <div style={{
+              flexShrink: 0, width: 28, height: 28, borderRadius: '50%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: msg.role === 'user' ? 'var(--accent-blue)' : 'var(--bg-elevated)',
+            }}>
+              {msg.role === 'user'
+                ? <User size={14} style={{ color: '#ffffff' }} />
+                : <Bot size={14} style={{ color: 'var(--accent-seafoam)' }} />}
             </div>
             <div className={`max-w-[80%] ${msg.role === 'user' ? 'items-end' : 'items-start'} flex flex-col gap-1`}>
-              <div className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
-                msg.role === 'user'
-                  ? 'bg-blue-600 text-white rounded-tr-none'
+              <div style={{
+                borderRadius: 16,
+                padding: '0.625rem 1rem',
+                fontSize: '0.875rem',
+                lineHeight: 1.6,
+                ...(msg.role === 'user'
+                  ? { background: 'var(--accent-blue)', color: '#ffffff', borderTopRightRadius: 4 }
                   : msg.error
-                  ? 'bg-red-500/10 text-red-400 border border-red-500/30 rounded-tl-none'
-                  : 'bg-gray-800 text-gray-300 rounded-tl-none'
-              }`}>
+                  ? { background: 'rgba(228,87,86,0.1)', color: 'var(--risk-high)', border: '1px solid rgba(228,87,86,0.3)', borderTopLeftRadius: 4 }
+                  : { background: 'var(--bg-elevated)', color: 'var(--text-secondary)', borderTopLeftRadius: 4 }),
+              }}>
                 {msg.content.split('\n').map((line, j) => (
                   <span key={j}>
                     {line.replace(/\*\*(.*?)\*\*/g, '$1')}
@@ -144,7 +161,7 @@ export function AIChatAdvisor({ farmId, farmName }) {
                 ))}
               </div>
               {msg.isDemo && (
-                <span className="text-xs text-yellow-500/70 px-1">⚠ Demo mode — configure IBM credentials for real AI</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--risk-medium)', opacity: 0.7, paddingLeft: 4 }}>⚠ Demo mode — configure IBM credentials for real AI</span>
               )}
             </div>
           </div>
@@ -152,10 +169,10 @@ export function AIChatAdvisor({ farmId, farmName }) {
 
         {mutation.isPending && (
           <div className="flex gap-3">
-            <div className="w-7 h-7 rounded-full bg-gray-700 flex items-center justify-center">
-              <Bot size={14} className="text-blue-400" />
+            <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--bg-elevated)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Bot size={14} style={{ color: 'var(--accent-seafoam)' }} />
             </div>
-            <div className="bg-gray-800 rounded-2xl rounded-tl-none px-4 py-3">
+            <div style={{ background: 'var(--bg-elevated)', borderRadius: 16, borderTopLeftRadius: 4, padding: '0.75rem 1rem' }}>
               <div className="flex gap-1">
                 <div className="w-2 h-2 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: '0ms' }} />
                 <div className="w-2 h-2 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: '150ms' }} />
@@ -170,14 +187,23 @@ export function AIChatAdvisor({ farmId, farmName }) {
 
       {/* Suggested questions — shown in the selected language */}
       {messages.length <= 2 && (
-        <div className="px-4 pb-3">
-          <p className="text-xs text-gray-600 mb-2">{lang.suggestedLabel}</p>
+        <div style={{ padding: '0 1rem 0.75rem' }}>
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>{lang.suggestedLabel}</p>
           <div className="flex flex-wrap gap-2">
             {lang.suggested.map((q, i) => (
               <button
                 key={i}
                 onClick={() => send(q)}
-                className="text-xs bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-gray-300 px-3 py-1.5 rounded-full border border-gray-700 transition-colors"
+                style={{
+                  fontSize: '0.75rem',
+                  background: 'var(--bg-elevated)',
+                  color: 'var(--text-muted)',
+                  padding: '0.375rem 0.75rem',
+                  borderRadius: 999,
+                  border: '1px solid var(--border)',
+                  cursor: 'pointer',
+                  transition: 'background 0.15s',
+                }}
               >
                 {q}
               </button>
@@ -187,9 +213,19 @@ export function AIChatAdvisor({ farmId, farmName }) {
       )}
 
       {/* Input */}
-      <div className="p-4 border-t border-gray-800 flex gap-3">
+      <div style={{ padding: '1rem', borderTop: '1px solid var(--border)', display: 'flex', gap: '0.75rem' }}>
         <input
-          className="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-blue-500 transition-colors"
+          style={{
+            flex: 1,
+            background: 'var(--input-bg)',
+            border: '1px solid var(--input-border)',
+            borderRadius: 12,
+            padding: '0.625rem 1rem',
+            fontSize: '0.875rem',
+            color: 'var(--text-primary)',
+            outline: 'none',
+            transition: 'border-color 0.15s',
+          }}
           placeholder={lang.placeholder}
           value={input}
           onChange={e => setInput(e.target.value)}
@@ -199,7 +235,17 @@ export function AIChatAdvisor({ farmId, farmName }) {
         <button
           onClick={() => send()}
           disabled={!input.trim() || mutation.isPending || !farmId}
-          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white p-2.5 rounded-xl transition-colors"
+          style={{
+            background: 'var(--accent-blue)',
+            color: '#ffffff',
+            border: 'none',
+            borderRadius: 12,
+            padding: '0.625rem 0.75rem',
+            cursor: 'pointer',
+            opacity: (!input.trim() || mutation.isPending || !farmId) ? 0.4 : 1,
+            transition: 'opacity 0.15s',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
         >
           <Send size={16} />
         </button>

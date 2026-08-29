@@ -120,13 +120,13 @@ function validate(form) {
 function Field({ label, required, error, children, hint }) {
   return (
     <div>
-      <label className="block text-xs font-medium text-gray-400 mb-1">
+      <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
         {label}
-        {required && <span className="text-red-400 ml-0.5">*</span>}
-        {hint && <span className="text-gray-600 font-normal ml-1">({hint})</span>}
+        {required && <span style={{ color: 'var(--risk-high)', marginLeft: 2 }}>*</span>}
+        {hint && <span style={{ color: 'var(--text-muted)', fontWeight: 400, marginLeft: 4 }}>({hint})</span>}
       </label>
       {children}
-      {error && <p className="text-xs text-red-400 mt-1">{error}</p>}
+      {error && <p style={{ fontSize: '0.75rem', color: 'var(--risk-high)', marginTop: 4 }}>{error}</p>}
     </div>
   )
 }
@@ -142,33 +142,59 @@ function Input({ value, onChange, type = 'text', placeholder, step, min, max, di
       value={value}
       onChange={onChange}
       placeholder={placeholder}
-      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50"
+      style={{
+        width: '100%',
+        background: 'var(--input-bg)',
+        border: '1px solid var(--input-border)',
+        borderRadius: 8,
+        padding: '0.5rem 0.75rem',
+        fontSize: '0.875rem',
+        color: 'var(--text-primary)',
+        outline: 'none',
+        transition: 'border-color 0.15s',
+        boxSizing: 'border-box',
+        opacity: disabled ? 0.5 : 1,
+      }}
     />
   )
 }
 
 function Select({ value, onChange, options, placeholder, disabled }) {
   return (
-    <div className="relative">
+    <div style={{ position: 'relative' }}>
       <select
         disabled={disabled}
         value={value}
         onChange={onChange}
-        className="w-full appearance-none bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50"
+        style={{
+          width: '100%',
+          appearance: 'none',
+          background: 'var(--input-bg)',
+          border: '1px solid var(--input-border)',
+          borderRadius: 8,
+          padding: '0.5rem 2rem 0.5rem 0.75rem',
+          fontSize: '0.875rem',
+          color: 'var(--text-primary)',
+          outline: 'none',
+          transition: 'border-color 0.15s',
+          boxSizing: 'border-box',
+          opacity: disabled ? 0.5 : 1,
+          cursor: disabled ? 'not-allowed' : 'pointer',
+        }}
       >
         <option value="">{placeholder || 'Select…'}</option>
         {options.map(o => (
           <option key={o} value={o}>{o}</option>
         ))}
       </select>
-      <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+      <ChevronDown size={14} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
     </div>
   )
 }
 
-function SectionHeader({ icon: Icon, label, color = 'text-blue-400' }) {
+function SectionHeader({ icon: Icon, label, color = 'var(--accent-seafoam)' }) {
   return (
-    <div className={`flex items-center gap-2 text-xs font-semibold uppercase tracking-wider ${color} pt-2 pb-1 border-b border-gray-800`}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color, paddingTop: '0.5rem', paddingBottom: '0.25rem', borderBottom: '1px solid var(--border)' }}>
       <Icon size={13} />
       {label}
     </div>
@@ -279,35 +305,35 @@ export function AddFarmModal({ isOpen, onClose, onSuccess }) {
   return (
     // Backdrop
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+      style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
       onClick={(e) => { if (e.target === e.currentTarget) handleClose() }}
     >
       {/* Modal */}
-      <div className="w-full max-w-2xl bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl flex flex-col max-h-[92vh]">
+      <div style={{ width: '100%', maxWidth: 672, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.4)', display: 'flex', flexDirection: 'column', maxHeight: '92vh' }}>
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800 flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-600/20 rounded-lg">
-              <MapPin size={18} className="text-blue-400" />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{ padding: '0.5rem', background: 'rgba(45,212,191,0.1)', borderRadius: 8 }}>
+              <MapPin size={18} style={{ color: 'var(--accent-seafoam)' }} />
             </div>
             <div>
-              <h2 className="font-bold text-white text-base">Add New Farm</h2>
-              <p className="text-xs text-gray-500">Enter farm details — the new farm will be immediately available across the application</p>
+              <h2 style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '1rem', margin: 0 }}>Add New Farm</h2>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>Enter farm details — the new farm will be immediately available across the application</p>
             </div>
           </div>
           <button
             onClick={handleClose}
             disabled={isPending}
-            className="text-gray-600 hover:text-gray-400 transition-colors disabled:opacity-40"
+            style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', opacity: isPending ? 0.4 : 1, padding: 0 }}
           >
             <X size={20} />
           </button>
         </div>
 
         {/* Body — scrollable */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+        <form onSubmit={handleSubmit} style={{ flex: 1, overflowY: 'auto', padding: '1.25rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {/* ---- Farm Identity ---- */}
-          <SectionHeader icon={MapPin} label="Farm Information" color="text-blue-400" />
+          <SectionHeader icon={MapPin} label="Farm Information" color="var(--accent-seafoam)" />
 
           <div className="grid grid-cols-2 gap-4">
             <Field label="Farm Name" required error={errors.farmName}>
@@ -368,7 +394,7 @@ export function AddFarmModal({ isOpen, onClose, onSuccess }) {
           </div>
 
           {/* ---- Crop / Soil / Irrigation ---- */}
-          <SectionHeader icon={Leaf} label="Agriculture Details" color="text-green-400" />
+          <SectionHeader icon={Leaf} label="Agriculture Details" color="var(--accent-green)" />
 
           <div className="grid grid-cols-3 gap-4">
             <Field label="Current Crop" required error={errors.currentCrop}>
@@ -401,7 +427,7 @@ export function AddFarmModal({ isOpen, onClose, onSuccess }) {
           </div>
 
           {/* ---- GPS Coordinates ---- */}
-          <SectionHeader icon={MapPin} label="GPS Coordinates" color="text-cyan-400" />
+          <SectionHeader icon={MapPin} label="GPS Coordinates" color="var(--accent-seafoam)" />
 
           <div className="grid grid-cols-2 gap-4">
             <Field label="Latitude" required hint="–90 to 90" error={errors.latitude}>
@@ -433,8 +459,8 @@ export function AddFarmModal({ isOpen, onClose, onSuccess }) {
           </div>
 
           {/* ---- Initial Salinity (optional) ---- */}
-          <SectionHeader icon={FlaskConical} label="Initial Salinity Reading (optional)" color="text-amber-400" />
-          <p className="text-xs text-gray-600 -mt-2">
+          <SectionHeader icon={FlaskConical} label="Initial Salinity Reading (optional)" color="var(--risk-medium)" />
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: -12 }}>
             If you provide Soil EC, Groundwater EC, and TDS, an initial risk assessment will be calculated immediately.
           </p>
 
@@ -511,23 +537,23 @@ export function AddFarmModal({ isOpen, onClose, onSuccess }) {
 
           {/* Salinity hint */}
           {hasInitialReading && !errors.soilEC && !errors.groundwaterEC && !errors.tds && (
-            <div className="flex items-start gap-2 text-xs text-green-400 bg-green-500/5 border border-green-500/20 rounded-lg px-3 py-2">
-              <CheckCircle size={13} className="flex-shrink-0 mt-0.5" />
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.75rem', color: 'var(--risk-low)', background: 'rgba(63,174,90,0.06)', border: '1px solid rgba(63,174,90,0.2)', borderRadius: 8, padding: '0.5rem 0.75rem' }}>
+              <CheckCircle size={13} style={{ flexShrink: 0, marginTop: 2 }} />
               Initial salinity data provided — risk assessment will be calculated on creation.
             </div>
           )}
 
           {/* Submit error */}
           {submitError && (
-            <div className="flex items-start gap-2 text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">
-              <AlertTriangle size={13} className="flex-shrink-0 mt-0.5" />
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.75rem', color: 'var(--risk-high)', background: 'rgba(228,87,86,0.08)', border: '1px solid rgba(228,87,86,0.25)', borderRadius: 8, padding: '0.5rem 0.75rem' }}>
+              <AlertTriangle size={13} style={{ flexShrink: 0, marginTop: 2 }} />
               {submitError}
             </div>
           )}
 
           {/* Submit success */}
           {submitSuccess && (
-            <div className="flex items-center gap-2 text-sm text-green-400 bg-green-500/10 border border-green-500/30 rounded-lg px-3 py-3">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'var(--risk-low)', background: 'rgba(63,174,90,0.08)', border: '1px solid rgba(63,174,90,0.2)', borderRadius: 8, padding: '0.75rem' }}>
               <CheckCircle size={16} />
               Farm added successfully! Loading your new farm…
             </div>
@@ -535,16 +561,20 @@ export function AddFarmModal({ isOpen, onClose, onSuccess }) {
         </form>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-800 flex-shrink-0">
-          <p className="text-xs text-gray-600">
-            Fields marked <span className="text-red-400">*</span> are required
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.5rem', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+            Fields marked <span style={{ color: 'var(--risk-high)' }}>*</span> are required
           </p>
-          <div className="flex gap-3">
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
             <button
               type="button"
               onClick={handleClose}
               disabled={isPending}
-              className="px-4 py-2 text-sm text-gray-400 hover:text-gray-300 border border-gray-700 hover:border-gray-600 rounded-lg transition-colors disabled:opacity-40"
+              style={{
+                padding: '0.5rem 1rem', fontSize: '0.875rem', color: 'var(--text-secondary)',
+                background: 'none', border: '1px solid var(--border)', borderRadius: 8,
+                cursor: 'pointer', transition: 'border-color 0.15s', opacity: isPending ? 0.4 : 1,
+              }}
             >
               Cancel
             </button>
@@ -553,7 +583,13 @@ export function AddFarmModal({ isOpen, onClose, onSuccess }) {
               form="add-farm-form"
               onClick={handleSubmit}
               disabled={isPending || submitSuccess}
-              className="px-5 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+              style={{
+                padding: '0.5rem 1.25rem', fontSize: '0.875rem', fontWeight: 500,
+                background: 'var(--accent-blue)', color: '#ffffff', border: 'none', borderRadius: 8,
+                cursor: 'pointer', transition: 'background 0.15s',
+                opacity: (isPending || submitSuccess) ? 0.5 : 1,
+                display: 'flex', alignItems: 'center', gap: '0.5rem',
+              }}
             >
               {isPending && <Loader2 size={14} className="animate-spin" />}
               {isPending ? 'Saving…' : submitSuccess ? 'Saved!' : 'Add Farm'}

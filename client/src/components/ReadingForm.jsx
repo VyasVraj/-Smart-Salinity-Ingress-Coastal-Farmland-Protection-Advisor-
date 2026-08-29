@@ -47,17 +47,18 @@ export function ReadingForm({ farmId, onSuccess }) {
   ]
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       <div className="grid grid-cols-2 gap-3">
         {fields.map(f => (
           <div key={f.key}>
-            <label className="block text-xs text-gray-400 mb-1">
-              {f.label}{f.required && <span className="text-red-400 ml-1">*</span>}
+            <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
+              {f.label}{f.required && <span style={{ color: 'var(--risk-high)', marginLeft: 4 }}>*</span>}
             </label>
             <input
               type="number"
               step="0.01"
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
+              className="form-input"
+              style={{ width: '100%' }}
               placeholder={f.hint}
               value={form[f.key]}
               onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))}
@@ -68,13 +69,13 @@ export function ReadingForm({ farmId, onSuccess }) {
       </div>
 
       {mutation.error && (
-        <p className="text-red-400 text-sm bg-red-500/10 rounded-lg px-3 py-2">
+        <p style={{ color: 'var(--risk-high)', fontSize: '0.875rem', background: 'rgba(228,87,86,0.08)', borderRadius: 8, padding: '0.5rem 0.75rem' }}>
           {mutation.error.message}
         </p>
       )}
 
       {mutation.data && (
-        <p className="text-green-400 text-sm bg-green-500/10 rounded-lg px-3 py-2">
+        <p style={{ color: 'var(--risk-low)', fontSize: '0.875rem', background: 'rgba(63,174,90,0.08)', borderRadius: 8, padding: '0.5rem 0.75rem' }}>
           ✓ Reading submitted — Risk: {mutation.data.riskAssessment?.riskLevel} | 
           Score: {mutation.data.riskAssessment?.riskScore} | 
           Trend: {mutation.data.riskAssessment?.trend}

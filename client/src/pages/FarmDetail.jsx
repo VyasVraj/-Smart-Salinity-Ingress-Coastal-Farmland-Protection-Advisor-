@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
-import { ArrowLeft, MapPin, Droplets, Waves, FlaskConical, Activity, AlertTriangle, Cpu, MessageSquare, TrendingUp, GitBranch } from 'lucide-react'
+import { ArrowLeft, MapPin, AlertTriangle, Cpu, MessageSquare, TrendingUp, GitBranch, FlaskConical, Wheat } from 'lucide-react'
 import { useFarm, useFarmReadings } from '../hooks/useFarm.js'
 import { useActivityTimeline } from '../hooks/useActivityTimeline.js'
 import { RiskBadge, TrendBadge, DemoBadge, LiveBadge } from '../components/ui/Badges.jsx'
@@ -13,106 +13,87 @@ import { ExplainableRiskScore } from '../components/ExplainableRiskScore.jsx'
 import { formatTime } from '../lib/utils.js'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../lib/api.js'
-import { useNavigate as useNav } from 'react-router-dom'
 
-const TABS = ['Overview', 'Risk Explained', 'Charts', 'Forecast', 'AI Advisory', 'Alerts', 'Agent Activity', 'What-If', 'Manual Entry', 'Chat']
+const TABS = ['Overview', 'Risk Explained', 'Charts', 'AI Advisory', 'Alerts', 'Agent Activity', 'Manual Entry', 'Chat']
+
+function riskCol(level) {
+  return { LOW: 'var(--risk-low)', MEDIUM: 'var(--risk-medium)', HIGH: 'var(--risk-high)', CRITICAL: 'var(--risk-critical)' }[level] || 'var(--text-muted)'
+}
 
 function AdvisoryCard({ advisory }) {
   let content
   try { content = JSON.parse(advisory.content) } catch { content = { message: advisory.content } }
-
   const isDemo = JSON.stringify(content).includes('[DEMO]') || JSON.stringify(content).includes('[SAMPLE')
-
   const titles = {
-    MONITORING: '🔬 Monitoring Analysis',
-    CROP: '🌾 Crop Advisory',
-    IRRIGATION: '💧 Irrigation Guidance',
-    RECLAMATION: '🌱 Land Reclamation Plan',
-    ALERT: '🚨 Farmer Alert',
-    CHAT: '💬 Chat Response',
+    MONITORING: 'Monitoring Analysis', CROP: 'Crop Advisory',
+    IRRIGATION: 'Irrigation Guidance', RECLAMATION: 'Land Reclamation Plan',
+    ALERT: 'Farmer Alert', CHAT: 'Chat Response',
   }
 
   return (
-    <div className="card p-4 space-y-3">
-      <div className="flex items-center justify-between">
-        <h4 className="font-medium text-white text-sm">{titles[advisory.type] || advisory.type}</h4>
-        <div className="flex items-center gap-2">
+    <div className="card" style={{ padding: '1rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+        <span style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)' }}>{titles[advisory.type] || advisory.type}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           {isDemo && <DemoBadge />}
-          <span className="text-xs text-gray-600">{formatTime(advisory.createdAt)}</span>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{formatTime(advisory.createdAt)}</span>
         </div>
       </div>
-
-      {/* Render different advisory structures */}
-      {content.conditionSummary && (
-        <p className="text-sm text-gray-400">{content.conditionSummary}</p>
-      )}
-      {content.keyFindings && (
-        <ul className="space-y-1">
-          {content.keyFindings.map((f, i) => (
-            <li key={i} className="text-xs text-gray-500 flex items-start gap-2">
-              <span className="text-blue-400 mt-0.5">•</span>{f}
-            </li>
-          ))}
-        </ul>
-      )}
+      {content.conditionSummary && <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>{content.conditionSummary}</p>}
       {content.recommendations && (
-        <div className="space-y-2">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
           {content.recommendations.slice(0, 3).map((r, i) => (
-            <div key={i} className="bg-gray-800 rounded-lg p-3 text-xs">
-              <div className="flex items-center justify-between mb-1">
-                <span className="font-medium text-white">{r.crop}</span>
-                <span className={`px-2 py-0.5 rounded-full text-xs ${
-                  r.suitability === 'HIGH' ? 'bg-green-500/20 text-green-400' :
-                  r.suitability === 'MODERATE' ? 'bg-amber-500/20 text-amber-400' :
-                  'bg-gray-500/20 text-gray-400'
-                }`}>{r.suitability}</span>
+            <div key={i} style={{ background: 'var(--bg-elevated)', borderRadius: 7, padding: '0.625rem 0.75rem', fontSize: '0.8125rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{r.crop}</span>
+                <span style={{ fontSize: '0.75rem', color: r.suitability === 'HIGH' ? 'var(--risk-low)' : r.suitability === 'MODERATE' ? 'var(--risk-medium)' : 'var(--text-muted)' }}>{r.suitability}</span>
               </div>
-              <p className="text-gray-500">{r.reason}</p>
+              <p style={{ color: 'var(--text-muted)' }}>{r.reason}</p>
             </div>
           ))}
         </div>
       )}
       {content.irrigationGuidance && (
-        <ul className="space-y-1">
+        <ul style={{ margin: '0.5rem 0 0', padding: 0, listStyle: 'none' }}>
           {content.irrigationGuidance.slice(0, 4).map((g, i) => (
-            <li key={i} className="text-xs text-gray-500 flex items-start gap-2">
-              <span className="text-blue-400 mt-0.5">•</span>{g}
+            <li key={i} style={{ display: 'flex', gap: '0.375rem', fontSize: '0.8125rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+              <span style={{ color: 'var(--accent-seafoam)', flexShrink: 0 }}>·</span>{g}
             </li>
           ))}
         </ul>
       )}
       {content.immediateActions && (
-        <div>
-          <p className="text-xs text-amber-400 font-medium mb-1">Immediate Actions:</p>
-          <ul className="space-y-1">
+        <div style={{ marginTop: '0.5rem' }}>
+          <div className="section-label" style={{ marginBottom: '0.375rem', color: 'var(--risk-medium)' }}>Immediate Actions</div>
+          <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
             {content.immediateActions.slice(0, 3).map((a, i) => (
-              <li key={i} className="text-xs text-gray-500 flex items-start gap-2">
-                <span className="text-amber-400 mt-0.5">{i + 1}.</span>{a}
+              <li key={i} style={{ display: 'flex', gap: '0.375rem', fontSize: '0.8125rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+                <span style={{ color: 'var(--risk-medium)', flexShrink: 0 }}>{i + 1}.</span>{a}
               </li>
             ))}
           </ul>
         </div>
       )}
       {content.alertTitle && (
-        <div className="space-y-2">
-          <p className="font-medium text-amber-400">{content.alertTitle}</p>
-          {content.situationExplained && <p className="text-sm text-gray-400">{content.situationExplained}</p>}
+        <div>
+          <p style={{ fontWeight: 600, color: 'var(--risk-medium)', marginBottom: '0.375rem' }}>{content.alertTitle}</p>
+          {content.situationExplained && <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>{content.situationExplained}</p>}
           {content.topThreeActions && (
-            <ul className="space-y-1">
+            <ul style={{ margin: '0.5rem 0 0', padding: 0, listStyle: 'none' }}>
               {content.topThreeActions.map((a, i) => (
-                <li key={i} className="text-xs text-gray-500 flex gap-2">
-                  <span className="text-amber-400">{i + 1}.</span>{a}
+                <li key={i} style={{ display: 'flex', gap: '0.375rem', fontSize: '0.8125rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
+                  <span style={{ color: 'var(--risk-medium)', flexShrink: 0 }}>{i + 1}.</span>{a}
                 </li>
               ))}
             </ul>
           )}
-          {content.encouragingClose && <p className="text-xs text-green-400 italic">{content.encouragingClose}</p>}
+          {content.encouragingClose && <p style={{ fontSize: '0.8125rem', color: 'var(--risk-low)', fontStyle: 'italic', marginTop: '0.5rem' }}>{content.encouragingClose}</p>}
         </div>
       )}
       {content.question && (
-        <div className="space-y-2">
-          <p className="text-xs text-gray-600 italic">Q: {content.question}</p>
-          <p className="text-sm text-gray-400">{content.answer}</p>
+        <div>
+          <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', fontStyle: 'italic', marginBottom: '0.25rem' }}>Q: {content.question}</p>
+          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>{content.answer}</p>
         </div>
       )}
     </div>
@@ -134,110 +115,160 @@ export default function FarmDetail() {
     onSuccess: () => queryClient.invalidateQueries(['farm', id]),
   })
 
-  if (isLoading) return <div className="p-6 text-gray-600">Loading farm data...</div>
-  if (!farm) return <div className="p-6 text-red-400">Farm not found</div>
+  if (isLoading) return (
+    <div style={{ padding: '1.5rem', color: 'var(--text-muted)', fontSize: '0.875rem' }}>Loading farm data…</div>
+  )
+  if (!farm) return (
+    <div style={{ padding: '1.5rem', color: 'var(--risk-high)', fontSize: '0.875rem' }}>Farm not found</div>
+  )
 
   const latestReading = farm.readings?.[0]
   const latestRisk = farm.riskAssessments?.[0]
   const activeAlerts = farm.alerts?.filter(a => a.status === 'ACTIVE') || []
+  const level = latestRisk?.riskLevel || 'UNKNOWN'
 
   return (
-    <div className="p-6 space-y-5">
+    <div style={{ padding: '1.5rem', maxWidth: 1100, margin: '0 auto' }}>
       {/* Back + header */}
-      <div>
-        <button onClick={() => navigate('/')} className="text-sm text-gray-500 hover:text-gray-300 flex items-center gap-1 mb-3">
-          <ArrowLeft size={14} /> Dashboard
+      <div style={{ marginBottom: '1.25rem' }}>
+        <button
+          className="btn-ghost"
+          style={{ padding: '0.375rem 0.5rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.375rem' }}
+          onClick={() => navigate('/farms')}
+        >
+          <ArrowLeft size={14} /> Back to My Farms
         </button>
-        <div className="flex items-start justify-between">
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
           <div>
-            <h1 className="text-xl font-bold text-white">{farm.farmName}</h1>
-            <div className="flex items-center gap-3 mt-1 text-sm text-gray-500">
-              <span className="flex items-center gap-1"><MapPin size={13} />{farm.farmerName} · {farm.district}</span>
-              <span>{farm.currentCrop} · {farm.landArea} ha</span>
+            <h1 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 0.375rem' }}>
+              {farm.farmName}
+            </h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
+                <MapPin size={12} /> {farm.farmerName} · {farm.district}
+              </span>
+              {farm.currentCrop && (
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
+                  <Wheat size={12} /> {farm.currentCrop} · {farm.landArea} ha
+                </span>
+              )}
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <LiveBadge />
-            {latestRisk && <RiskBadge level={latestRisk.riskLevel} size="lg" />}
+            {latestRisk && <RiskBadge level={level} size="lg" />}
           </div>
         </div>
+
+        {/* Risk score hero */}
+        {latestRisk && (
+          <div style={{
+            marginTop: '1rem',
+            background: `linear-gradient(135deg, ${riskCol(level)}14, transparent)`,
+            border: `1px solid ${riskCol(level)}30`,
+            borderRadius: 10,
+            padding: '1rem 1.25rem',
+            display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap'
+          }}>
+            <div>
+              <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.25rem' }}>Farm Health Score</div>
+              <div style={{ fontSize: '2rem', fontWeight: 800, color: riskCol(level), lineHeight: 1 }}>
+                {100 - latestRisk.riskScore}<span style={{ fontSize: '1rem', color: 'var(--text-muted)', fontWeight: 400 }}>/100</span>
+              </div>
+            </div>
+            <div style={{ width: 1, height: 48, background: 'var(--border)', flexShrink: 0 }} />
+            <div>
+              <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.25rem' }}>Risk Score</div>
+              <div style={{ fontSize: '1.375rem', fontWeight: 700, color: riskCol(level) }}>{latestRisk.riskScore}/100</div>
+            </div>
+            <div style={{ width: 1, height: 48, background: 'var(--border)', flexShrink: 0 }} />
+            <div>
+              <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.25rem' }}>Trend</div>
+              <TrendBadge trend={latestRisk.trend} />
+            </div>
+            {activeAlerts.length > 0 && (
+              <>
+                <div style={{ width: 1, height: 48, background: 'var(--border)', flexShrink: 0 }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', color: 'var(--risk-high)' }}>
+                  <AlertTriangle size={15} />
+                  <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>{activeAlerts.length} active alert{activeAlerts.length > 1 ? 's' : ''}</span>
+                </div>
+              </>
+            )}
+            <div style={{ flex: 1 }} />
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <button className="btn-ghost" onClick={() => navigate('/what-if')}>Run What-If</button>
+              <button className="btn-ghost" onClick={() => navigate('/advisory')}>AI Advisor</button>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Active alerts banner */}
+      {/* Alerts banner */}
       {activeAlerts.length > 0 && (
-        <div className="card p-4 border-red-500/30 bg-red-500/5">
-          <div className="flex items-center gap-2 mb-2">
-            <AlertTriangle size={16} className="text-red-400" />
-            <h3 className="font-semibold text-red-400 text-sm">{activeAlerts.length} Active Alert{activeAlerts.length > 1 ? 's' : ''}</h3>
+        <div style={{ background: 'rgba(228,87,86,0.07)', border: '1px solid rgba(228,87,86,0.2)', borderRadius: 10, padding: '0.875rem 1.125rem', marginBottom: '1.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.375rem' }}>
+            <AlertTriangle size={15} style={{ color: 'var(--risk-high)' }} />
+            <span style={{ fontWeight: 600, color: 'var(--risk-high)', fontSize: '0.875rem' }}>{activeAlerts.length} Active Alert{activeAlerts.length > 1 ? 's' : ''}</span>
           </div>
           {activeAlerts.slice(0, 2).map(alert => (
-            <div key={alert.id} className="text-xs text-gray-400 mb-1">{alert.title}</div>
+            <div key={alert.id} style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginBottom: '0.125rem' }}>{alert.title}</div>
           ))}
         </div>
       )}
 
       {/* Tabs */}
-      <div className="flex gap-1 overflow-x-auto pb-1">
+      <div style={{ display: 'flex', gap: '0.25rem', overflowX: 'auto', paddingBottom: '0.5rem', marginBottom: '1.25rem' }}>
         {TABS.map(t => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`flex-shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              tab === t ? 'bg-blue-600/20 text-blue-400 border border-blue-600/30' : 'text-gray-500 hover:text-gray-300'
-            }`}
-          >
+          <button key={t} className={`tab-btn${tab === t ? ' active' : ''}`} onClick={() => setTab(t)}>
             {t}
           </button>
         ))}
       </div>
 
-      {/* Overview tab */}
+      {/* Overview */}
       {tab === 'Overview' && (
-        <div className="space-y-5">
-          {latestRisk && (
-            <div className="card p-5">
-              <h3 className="text-sm font-semibold text-gray-400 mb-3 uppercase tracking-wide">Current Risk Assessment</h3>
-              <div className="flex items-center gap-4 mb-3">
-                <RiskBadge level={latestRisk.riskLevel} size="lg" />
-                <TrendBadge trend={latestRisk.trend} />
-                <span className="text-sm text-gray-500">Score: {latestRisk.riskScore}/100</span>
-                <span className="text-sm text-gray-500">Change: {latestRisk.trendChangePercent}%</span>
-              </div>
-              <p className="text-sm text-gray-400">{latestRisk.reasoningSummary}</p>
-            </div>
-          )}
-
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.125rem' }}>
           {latestReading && (
             <div>
-              <h3 className="text-sm font-semibold text-gray-400 mb-3 uppercase tracking-wide">
-                Latest Reading — {formatTime(latestReading.timestamp)}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                <span className="section-label">Latest Reading</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{formatTime(latestReading.timestamp)}</span>
                 {latestReading.source === 'SIMULATOR' && <DemoBadge />}
-              </h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                <MetricCard label="Soil EC" value={latestReading.soilEC} unit="dS/m" status={getECStatus(latestReading.soilEC)} />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '0.75rem' }}>
+                <MetricCard label="Soil EC"        value={latestReading.soilEC}        unit="dS/m" status={getECStatus(latestReading.soilEC)} />
                 <MetricCard label="Groundwater EC" value={latestReading.groundwaterEC} unit="dS/m" status={getECStatus(latestReading.groundwaterEC)} />
-                <MetricCard label="TDS" value={latestReading.tds} unit="ppm" status={getTDSStatus(latestReading.tds)} />
-                <MetricCard label="Soil pH" value={latestReading.soilPH} status={getPHStatus(latestReading.soilPH)} />
-                <MetricCard label="Moisture" value={latestReading.moisture} unit="%" status="neutral" />
-                <MetricCard label="Water Level" value={latestReading.waterLevel} unit="m" status="neutral" />
+                <MetricCard label="TDS"            value={latestReading.tds}           unit="ppm"  status={getTDSStatus(latestReading.tds)} />
+                <MetricCard label="Soil pH"        value={latestReading.soilPH}                    status={getPHStatus(latestReading.soilPH)} />
+                <MetricCard label="Moisture"       value={latestReading.moisture}      unit="%"    status="neutral" />
+                <MetricCard label="Water Level"    value={latestReading.waterLevel}    unit="m"    status="neutral" />
               </div>
             </div>
           )}
 
-          {/* Farm info */}
-          <div className="card p-5">
-            <h3 className="text-sm font-semibold text-gray-400 mb-3 uppercase tracking-wide">Farm Details</h3>
-            <div className="grid grid-cols-2 gap-3 text-sm">
+          {latestRisk && (
+            <div className="card" style={{ padding: '1rem 1.25rem' }}>
+              <div className="section-label" style={{ marginBottom: '0.625rem' }}>Risk Assessment</div>
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>{latestRisk.reasoningSummary}</p>
+              <div style={{ marginTop: '0.5rem', fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
+                Change: {latestRisk.trendChangePercent}% · Score: {latestRisk.riskScore}/100
+              </div>
+            </div>
+          )}
+
+          <div className="card" style={{ padding: '1rem 1.25rem' }}>
+            <div className="section-label" style={{ marginBottom: '0.75rem' }}>Farm Details</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.75rem 1.25rem' }}>
               {[
-                ['Location', farm.location],
-                ['Soil Type', farm.soilType],
-                ['Irrigation Source', farm.irrigationSource],
-                ['Land Area', `${farm.landArea} hectares`],
-                ['Coordinates', `${farm.latitude.toFixed(4)}, ${farm.longitude.toFixed(4)}`],
-              ].map(([k, v]) => (
+                ['Location', farm.location], ['Soil Type', farm.soilType],
+                ['Irrigation', farm.irrigationSource], ['Area', `${farm.landArea} hectares`],
+                ['Coordinates', `${farm.latitude?.toFixed(4)}, ${farm.longitude?.toFixed(4)}`],
+              ].map(([k, v]) => v && (
                 <div key={k}>
-                  <p className="text-xs text-gray-600">{k}</p>
-                  <p className="text-gray-300">{v}</p>
+                  <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginBottom: '0.125rem' }}>{k}</div>
+                  <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{v}</div>
                 </div>
               ))}
             </div>
@@ -245,44 +276,25 @@ export default function FarmDetail() {
         </div>
       )}
 
-      {/* Risk Explained tab */}
-      {tab === 'Risk Explained' && (
-        <ExplainableRiskScore farmId={id} />
-      )}
+      {tab === 'Risk Explained' && <ExplainableRiskScore farmId={id} />}
 
-      {/* Charts tab */}
       {tab === 'Charts' && (
-        <div className="space-y-5">
-          <div className="card p-5">
-            <h3 className="text-sm font-semibold text-gray-400 mb-4">Salinity Trend (last 60 readings)</h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.125rem' }}>
+          <div className="card" style={{ padding: '1.25rem' }}>
+            <div className="section-label" style={{ marginBottom: '1rem' }}>Salinity Trend (last 60 readings)</div>
             <SalinityTrendChart readings={readings} />
           </div>
-          <div className="card p-5">
-            <h3 className="text-sm font-semibold text-gray-400 mb-4">Risk Score Over Time</h3>
+          <div className="card" style={{ padding: '1.25rem' }}>
+            <div className="section-label" style={{ marginBottom: '1rem' }}>Risk Score Over Time</div>
             <RiskScoreChart riskAssessments={farm.riskAssessments} />
           </div>
         </div>
       )}
 
-      {/* Forecast tab */}
-      {tab === 'Forecast' && (
-        <div className="card p-5 text-center text-gray-500 text-sm py-8">
-          <TrendingUp size={28} className="mx-auto mb-2 opacity-30" />
-          <p>Open the full Forecast page for this farm.</p>
-          <button
-            onClick={() => { window.location.href = '/forecast' }}
-            className="btn-primary mt-3 text-xs"
-          >
-            Open Forecast →
-          </button>
-        </div>
-      )}
-
-      {/* AI Advisory tab */}
       {tab === 'AI Advisory' && (
-        <div className="space-y-4">
-          {farm.advisories?.length === 0 && (
-            <div className="card p-6 text-center text-gray-600 text-sm">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          {(farm.advisories?.filter(a => a.type !== 'CHAT')?.length ?? 0) === 0 && (
+            <div className="card" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
               No advisories yet. Submit a reading to trigger AI agents.
             </div>
           )}
@@ -292,81 +304,56 @@ export default function FarmDetail() {
         </div>
       )}
 
-      {/* Alerts tab */}
       {tab === 'Alerts' && (
-        <div className="space-y-3">
-          {farm.alerts?.length === 0 && (
-            <div className="card p-6 text-center text-gray-600 text-sm">No alerts for this farm.</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+          {(farm.alerts?.length ?? 0) === 0 && (
+            <div className="card" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>No alerts for this farm.</div>
           )}
-          {farm.alerts?.map(alert => (
-            <div key={alert.id} className={`card p-4 border ${
-              alert.status === 'RESOLVED' ? 'border-gray-700 opacity-60' : 
-              alert.severity === 'CRITICAL' ? 'border-purple-500/30' : 'border-red-500/30'
-            }`}>
-              <div className="flex items-start justify-between">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle size={16} className={alert.status === 'RESOLVED' ? 'text-gray-500' : 'text-red-400'} />
-                  <div>
-                    <p className="font-medium text-white text-sm">{alert.title}</p>
-                    <p className="text-sm text-gray-400 mt-1">{alert.message}</p>
-                    <p className="text-xs text-gray-600 mt-2">{formatTime(alert.createdAt)}</p>
+          {farm.alerts?.map(alert => {
+            const col = riskCol(alert.severity)
+            return (
+              <div key={alert.id} className="card" style={{ padding: '1rem', opacity: alert.status === 'RESOLVED' ? 0.55 : 1, borderColor: col + '30' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.75rem' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.375rem' }}>
+                      <AlertTriangle size={14} style={{ color: col, flexShrink: 0 }} />
+                      <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.875rem' }}>{alert.title}</span>
+                      <span style={{ fontSize: '0.6875rem', color: col, background: col + '18', border: `1px solid ${col}30`, borderRadius: 4, padding: '0.1rem 0.4rem' }}>{alert.severity}</span>
+                    </div>
+                    <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>{alert.message}</p>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.375rem' }}>{formatTime(alert.createdAt)}</p>
+                  </div>
+                  <div style={{ flexShrink: 0 }}>
+                    {alert.status === 'ACTIVE' && (
+                      <button className="btn-ghost" style={{ fontSize: '0.8125rem' }} onClick={() => resolveMutation.mutate(alert.id)}>Resolve</button>
+                    )}
+                    {alert.status === 'RESOLVED' && <span style={{ fontSize: '0.75rem', color: 'var(--risk-low)' }}>✓ Resolved</span>}
                   </div>
                 </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                    alert.severity === 'CRITICAL' ? 'bg-purple-500/20 text-purple-400' :
-                    alert.severity === 'HIGH' ? 'bg-red-500/20 text-red-400' :
-                    'bg-amber-500/20 text-amber-400'
-                  }`}>{alert.severity}</span>
-                  {alert.status === 'ACTIVE' && (
-                    <button
-                      onClick={() => resolveMutation.mutate(alert.id)}
-                      className="text-xs text-gray-500 hover:text-green-400 transition-colors"
-                    >
-                      Resolve
-                    </button>
-                  )}
-                  {alert.status === 'RESOLVED' && <span className="text-xs text-green-500">✓ Resolved</span>}
-                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
 
-      {/* What-If tab */}
-      {tab === 'What-If' && (
-        <div className="card p-5 text-center text-gray-500 text-sm py-8">
-          <FlaskConical size={28} className="mx-auto mb-2 opacity-30" />
-          <p>Open the full What-If Simulator for this farm.</p>
-          <button
-            onClick={() => { window.location.href = '/what-if' }}
-            className="btn-primary mt-3 text-xs"
-          >
-            Open What-If Simulator →
-          </button>
-        </div>
-      )}
-
-      {/* Agent Activity tab */}
       {tab === 'Agent Activity' && (
-        <div className="card p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Real-Time Agent Activity</h3>
+        <div className="card" style={{ padding: '1.25rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <div className="section-label">Real-Time Agent Activity</div>
             <LiveBadge />
           </div>
           <ActivityTimeline events={events} />
-          {events.length === 0 && farm.agentRuns?.length > 0 && (
-            <div className="mt-4 border-t border-gray-800 pt-4">
-              <p className="text-xs text-gray-600 mb-3">Historical agent runs:</p>
-              <div className="space-y-2">
+          {events.length === 0 && (farm.agentRuns?.length ?? 0) > 0 && (
+            <div style={{ marginTop: '1rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '1rem' }}>
+              <div className="section-label" style={{ marginBottom: '0.5rem' }}>Historical Agent Runs</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
                 {farm.agentRuns.slice(0, 15).map(run => (
-                  <div key={run.id} className="flex items-start gap-3 text-xs bg-gray-800 rounded-lg px-3 py-2">
-                    <span className={`font-medium ${run.status === 'COMPLETED' ? 'text-green-400' : run.status === 'FAILED' ? 'text-red-400' : 'text-amber-400'}`}>
+                  <div key={run.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.8125rem', background: 'var(--bg-elevated)', borderRadius: 7, padding: '0.5rem 0.75rem' }}>
+                    <span style={{ fontWeight: 600, color: run.status === 'COMPLETED' ? 'var(--risk-low)' : run.status === 'FAILED' ? 'var(--risk-high)' : 'var(--risk-medium)' }}>
                       {run.status === 'COMPLETED' ? '✓' : run.status === 'FAILED' ? '✗' : '⟳'} {run.agentName}
                     </span>
-                    <span className="text-gray-500">{run.triggerReason}</span>
-                    <span className="text-gray-700 ml-auto">{formatTime(run.createdAt)}</span>
+                    <span style={{ color: 'var(--text-muted)', flex: 1 }}>{run.triggerReason}</span>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{formatTime(run.createdAt)}</span>
                   </div>
                 ))}
               </div>
@@ -375,24 +362,22 @@ export default function FarmDetail() {
         </div>
       )}
 
-      {/* Manual Entry tab */}
       {tab === 'Manual Entry' && (
-        <div className="card p-5">
-          <h3 className="text-sm font-semibold text-gray-400 mb-4 uppercase tracking-wide">Submit Manual Reading</h3>
-          <p className="text-xs text-gray-600 mb-4">
-            Submitting a reading triggers the full pipeline: validation → PostgreSQL → risk engine → AI agent orchestration → real-time dashboard update.
+        <div className="card" style={{ padding: '1.25rem' }}>
+          <div className="section-label" style={{ marginBottom: '0.5rem' }}>Submit Manual Reading</div>
+          <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '1rem', lineHeight: 1.6 }}>
+            Submitting a reading triggers the full pipeline: validation → PostgreSQL → risk engine → AI agent orchestration → real-time update.
           </p>
           <ReadingForm farmId={id} onSuccess={() => {}} />
         </div>
       )}
 
-      {/* Chat tab */}
       {tab === 'Chat' && (
-        <div className="card overflow-hidden">
-          <div className="px-5 py-3 border-b border-gray-800 flex items-center gap-2">
-            <MessageSquare size={16} className="text-blue-400" />
-            <h3 className="text-sm font-semibold text-white">AI Farm Advisor Chat</h3>
-            <span className="text-xs text-gray-500">— contextual answers based on your farm data</span>
+        <div className="card" style={{ overflow: 'hidden' }}>
+          <div style={{ padding: '0.875rem 1.25rem', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <MessageSquare size={15} style={{ color: 'var(--accent-seafoam)' }} />
+            <span style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)' }}>AI Farm Advisor Chat</span>
+            <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>— answers based on your farm data</span>
           </div>
           <AIChatAdvisor farmId={id} farmName={farm.farmName} />
         </div>

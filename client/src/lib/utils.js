@@ -2,6 +2,43 @@
  * Risk display helpers
  */
 
+// ── Sensor value formatting ────────────────────────────────────────────────────
+
+/**
+ * Per-metric display precision.
+ * Change here to update every component that calls formatSensor().
+ */
+const SENSOR_DECIMALS = {
+  soilEC:        2,
+  groundwaterEC: 2,
+  tds:           0,
+  soilPH:        2,
+  moisture:      1,
+  waterLevel:    2,
+}
+
+/**
+ * Format a raw sensor value for display.
+ *
+ * @param {string}        metric  - key from SENSOR_DECIMALS (e.g. 'soilEC')
+ * @param {number|null}   value   - raw numeric value from the API / database
+ * @returns {string}              - formatted string, or '—' if value is unavailable
+ *
+ * Examples:
+ *   formatSensor('soilPH',    6.7196440286) → '6.72'
+ *   formatSensor('moisture',  45.147091656) → '45.1'
+ *   formatSensor('tds',       660.89)       → '661'
+ *   formatSensor('soilEC',    null)         → '—'
+ */
+export function formatSensor(metric, value) {
+  if (value == null || value === '' || typeof value === 'undefined') return '—'
+  const n = Number(value)
+  if (!isFinite(n) || isNaN(n)) return '—'
+  const decimals = SENSOR_DECIMALS[metric] ?? 2
+  return n.toFixed(decimals)
+}
+
+
 export function getRiskColor(level) {
   const colors = {
     LOW: 'text-green-400',

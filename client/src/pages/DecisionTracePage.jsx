@@ -14,29 +14,34 @@ import { LiveBadge } from '../components/ui/Badges.jsx'
 
 // ── Event type configuration (single source of truth) ────────────────────────
 
+// TYPE_CONFIG uses inline-style objects instead of Tailwind classes so that
+// colours resolve correctly in both dark and light themes via CSS variables.
 const TYPE_CONFIG = {
   READING: {
-    icon: '📡',
-    color:  'text-blue-400',
-    border: 'border-blue-500/30 bg-blue-500/5',
-    label:  'Sensor / Data Input',
-    filterKey: 'SENSOR',
+    icon:       '📡',
+    textColor:  'var(--accent-seafoam)',
+    borderColor:'rgba(45,212,191,0.3)',
+    bgColor:    'rgba(45,212,191,0.04)',
+    label:      'Sensor / Data Input',
+    filterKey:  'SENSOR',
     FilterIcon: Radio,
   },
   RISK_ASSESSMENT: {
-    icon: '⚖️',
-    color:  'text-amber-400',
-    border: 'border-amber-500/30 bg-amber-500/5',
-    label:  'Risk Engine',
-    filterKey: 'RISK',
+    icon:       '⚖️',
+    textColor:  'var(--risk-medium)',
+    borderColor:'rgba(230,162,60,0.3)',
+    bgColor:    'rgba(230,162,60,0.04)',
+    label:      'Risk Engine',
+    filterKey:  'RISK',
     FilterIcon: Scale,
   },
   AGENT_RUN: {
-    icon: '🤖',
-    color:  'text-purple-400',
-    border: 'border-purple-500/30 bg-purple-500/5',
-    label:  'AI Agent',
-    filterKey: 'AI_AGENT',
+    icon:       '🤖',
+    textColor:  'var(--accent-blue)',
+    borderColor:'rgba(25,118,210,0.3)',
+    bgColor:    'rgba(25,118,210,0.04)',
+    label:      'AI Agent',
+    filterKey:  'AI_AGENT',
     FilterIcon: Bot,
   },
 }
@@ -72,10 +77,10 @@ function TraceEvent({ event, isLast }) {
   const cfg       = TYPE_CONFIG[event.type] || TYPE_CONFIG.AGENT_RUN
   const agentIcon = AGENT_ICONS[event.agent] || cfg.icon
 
-  const statusColor = event.status === 'COMPLETED' ? 'text-green-400'
-    : event.status === 'FAILED'  ? 'text-red-400'
-    : event.status === 'RUNNING' ? 'text-amber-400'
-    : 'text-gray-400'
+  const statusColor = event.status === 'COMPLETED' ? 'var(--risk-low)'
+    : event.status === 'FAILED'  ? 'var(--risk-high)'
+    : event.status === 'RUNNING' ? 'var(--risk-medium)'
+    : 'var(--text-muted)'
 
   const statusIcon  = event.status === 'COMPLETED' ? '✓'
     : event.status === 'FAILED'  ? '✗'
@@ -83,59 +88,69 @@ function TraceEvent({ event, isLast }) {
     : '○'
 
   return (
-    <div className="relative">
+    <div style={{ position: 'relative' }}>
       {/* Connector line */}
       {!isLast && (
-        <div className="absolute left-6 top-12 bottom-0 w-px bg-gray-700/50" style={{ zIndex: 0 }} />
+        <div style={{ position: 'absolute', left: 24, top: 48, bottom: 0, width: 1, zIndex: 0, background: 'var(--border)' }} />
       )}
 
-      <div className="relative flex gap-4" style={{ zIndex: 1 }}>
+      <div style={{ position: 'relative', display: 'flex', gap: '1rem', zIndex: 1 }}>
         {/* Icon bubble */}
-        <div className={`flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center text-lg border ${cfg.border} bg-gray-900`}>
+        <div style={{
+          flexShrink: 0, width: 48, height: 48, borderRadius: '50%',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: '1.125rem',
+          background: 'var(--bg-card)',
+          border: `1px solid ${cfg.borderColor}`,
+        }}>
           {agentIcon}
         </div>
 
         {/* Content */}
-        <div className={`flex-1 mb-3 rounded-xl border ${cfg.border} overflow-hidden`}>
+        <div style={{
+          flex: 1, marginBottom: '0.75rem', borderRadius: 12, overflow: 'hidden',
+          border: `1px solid ${cfg.borderColor}`,
+          background: cfg.bgColor,
+        }}>
           <button
-            className="w-full text-left px-4 py-3 flex items-start justify-between gap-3 hover:bg-white/5 transition-colors"
+            style={{ width: '100%', textAlign: 'left', padding: '0.75rem 1rem', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.75rem', background: 'transparent', border: 'none', cursor: 'pointer' }}
             onClick={() => setExpanded(e => !e)}
           >
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className={`text-sm font-semibold ${cfg.color}`}>{event.agent}</span>
-                <span className={`text-xs font-mono ${statusColor}`}>{statusIcon} {event.status}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.875rem', fontWeight: 600, color: cfg.textColor }}>{event.agent}</span>
+                <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: statusColor }}>{statusIcon} {event.status}</span>
                 {event.type === 'READING' && (
-                  <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded">NEW DATA</span>
+                  <span style={{ fontSize: '0.75rem', background: 'rgba(45,212,191,0.12)', color: 'var(--accent-seafoam)', padding: '0.125rem 0.5rem', borderRadius: 4, border: '1px solid rgba(45,212,191,0.25)' }}>NEW DATA</span>
                 )}
                 {event.type === 'RISK_ASSESSMENT' && (
-                  <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded">RISK ENGINE</span>
+                  <span style={{ fontSize: '0.75rem', background: 'rgba(230,162,60,0.12)', color: 'var(--risk-medium)', padding: '0.125rem 0.5rem', borderRadius: 4, border: '1px solid rgba(230,162,60,0.25)' }}>RISK ENGINE</span>
                 )}
               </div>
-              <p className="text-xs text-gray-400 mt-1 leading-relaxed">{event.summary}</p>
-              <p className="text-xs text-gray-600 mt-1">{formatTime(event.timestamp)}</p>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.25rem', lineHeight: 1.5 }}>{event.summary}</p>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>{formatTime(event.timestamp)}</p>
             </div>
-            <div className="flex-shrink-0 mt-1 text-gray-600">
+            <div style={{ flexShrink: 0, marginTop: 4, color: 'var(--text-muted)' }}>
               {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
             </div>
           </button>
 
           {expanded && (
-            <div className="px-4 pb-4 pt-1 border-t border-gray-800/60 space-y-3">
+            <div className="px-4 pb-4 pt-1 space-y-3" style={{ borderTop: '1px solid var(--border-subtle)' }}>
               <div>
-                <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1">Why was this triggered?</p>
-                <p className="text-xs text-gray-300">{event.trigger}</p>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.25rem' }}>Why was this triggered?</p>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{event.trigger}</p>
               </div>
               {event.detail && Object.keys(event.detail).length > 0 && (
                 <div>
-                  <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1">Input Data</p>
-                  <div className="bg-gray-950 rounded-lg p-3 text-xs font-mono text-gray-400 space-y-1">
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.25rem' }}>Input Data</p>
+                  <div style={{ background: 'var(--bg-base)', borderRadius: 6, padding: '0.75rem', fontSize: '0.75rem', fontFamily: 'monospace', color: 'var(--text-secondary)' }} className="space-y-1">
                     {Object.entries(event.detail)
                       .filter(([k]) => k !== 'status' && k !== 'agentName')
                       .map(([k, v]) => (
                         <div key={k} className="flex gap-2">
-                          <span className="text-gray-600 min-w-32">{k}:</span>
-                          <span className="text-gray-300">
+                          <span style={{ color: 'var(--text-muted)', minWidth: 128 }}>{k}:</span>
+                          <span style={{ color: 'var(--text-secondary)' }}>
                             {typeof v === 'object' ? JSON.stringify(v).slice(0, 120) : String(v)}
                           </span>
                         </div>
@@ -248,19 +263,20 @@ export default function DecisionTracePage() {
       {/* ── Page header ───────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-white flex items-center gap-2">
-            <GitBranch className="text-purple-400" size={22} /> AI Decision Trace
+          <h1 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+            <GitBranch style={{ color: 'var(--accent-seafoam)' }} size={22} /> AI Decision Trace
           </h1>
-          <p className="text-sm text-gray-500 mt-1">Complete agent execution history — from reading to advisory</p>
+          <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>Complete agent execution history — from reading to advisory</p>
         </div>
         <LiveBadge />
       </div>
 
       {/* ── Farm selector + refresh ────────────────────────────────────────── */}
       <div className="flex items-center gap-3 flex-wrap">
-        <label className="text-sm text-gray-500">Farm:</label>
+        <label style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>Farm:</label>
         <select
-          className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white min-w-48"
+          className="form-input"
+          style={{ minWidth: 192 }}
           value={farmId}
           onChange={e => setSelectedId(e.target.value)}
         >
@@ -270,7 +286,7 @@ export default function DecisionTracePage() {
         </select>
         <button
           onClick={() => refetch()}
-          className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+          style={{ fontSize: '0.75rem', color: 'var(--accent-seafoam)', cursor: 'pointer', background: 'none', border: 'none' }}
         >
           ↻ Refresh
         </button>
@@ -282,40 +298,47 @@ export default function DecisionTracePage() {
           const isActive  = activeFilter === key
           const count     = counts[key]
 
+          // Active filter colours use the risk/accent system vars so they
+          // remain readable in both dark and light themes.
+          const btnStyle = isActive
+            ? key === 'ALL'
+              ? { background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-primary)' }
+              : key === 'SENSOR'
+                ? { background: 'rgba(45,212,191,0.12)', border: '1px solid rgba(45,212,191,0.4)', color: 'var(--accent-seafoam)' }
+                : key === 'RISK'
+                  ? { background: 'rgba(230,162,60,0.12)', border: '1px solid rgba(230,162,60,0.4)', color: 'var(--risk-medium)' }
+                  : { background: 'rgba(25,118,210,0.12)', border: '1px solid rgba(25,118,210,0.4)', color: 'var(--accent-blue)' }
+            : { background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-muted)' }
+
+          const badgeStyle = isActive
+            ? key === 'ALL'
+              ? { background: 'var(--bg-base)', color: 'var(--text-secondary)' }
+              : key === 'SENSOR'
+                ? { background: 'rgba(45,212,191,0.15)', color: 'var(--accent-seafoam)' }
+                : key === 'RISK'
+                  ? { background: 'rgba(230,162,60,0.15)', color: 'var(--risk-medium)' }
+                  : { background: 'rgba(25,118,210,0.15)', color: 'var(--accent-blue)' }
+            : { background: 'var(--bg-elevated)', color: 'var(--text-muted)' }
+
           return (
             <button
               key={key}
               onClick={() => setActiveFilter(key)}
-              className={`
-                flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium
-                border transition-colors
-                ${isActive
-                  ? key === 'ALL'
-                    ? 'bg-gray-700/60 border-gray-500 text-white'
-                    : key === 'SENSOR'
-                      ? 'bg-blue-500/20   border-blue-500/60   text-blue-300'
-                      : key === 'RISK'
-                        ? 'bg-amber-500/20  border-amber-500/60  text-amber-300'
-                        : 'bg-purple-500/20 border-purple-500/60 text-purple-300'
-                  : 'bg-gray-800/60 border-gray-700 text-gray-400 hover:text-gray-300 hover:bg-gray-700/60 hover:border-gray-600'
-                }
-              `}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+                padding: '0.5rem 0.75rem', borderRadius: 8,
+                fontSize: '0.75rem', fontWeight: 500, cursor: 'pointer',
+                transition: 'background 0.15s',
+                ...btnStyle,
+              }}
             >
               <Icon size={13} />
               <span>{label}</span>
-              <span className={`
-                ml-0.5 px-1.5 py-0.5 rounded-full text-xs font-mono leading-none
-                ${isActive
-                  ? key === 'ALL'
-                    ? 'bg-gray-600 text-gray-200'
-                    : key === 'SENSOR'
-                      ? 'bg-blue-500/30   text-blue-200'
-                      : key === 'RISK'
-                        ? 'bg-amber-500/30  text-amber-200'
-                        : 'bg-purple-500/30 text-purple-200'
-                  : 'bg-gray-700 text-gray-500'
-                }
-              `}>
+              <span style={{
+                marginLeft: 2, padding: '0.125rem 0.375rem', borderRadius: 999,
+                fontSize: '0.75rem', fontFamily: 'monospace', lineHeight: 1,
+                ...badgeStyle,
+              }}>
                 {count}
               </span>
             </button>
@@ -325,12 +348,12 @@ export default function DecisionTracePage() {
 
       {/* ── Loading ────────────────────────────────────────────────────────── */}
       {isLoading && (
-        <div className="text-gray-600 text-sm py-8 text-center">Loading decision trace…</div>
+        <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', padding: '2rem 0', textAlign: 'center' }}>Loading decision trace…</div>
       )}
 
       {/* ── No events at all ───────────────────────────────────────────────── */}
       {!isLoading && allEvents.length === 0 && (
-        <div className="card p-8 text-center text-gray-600">
+        <div className="card p-8 text-center" style={{ color: 'var(--text-muted)' }}>
           <GitBranch size={32} className="mx-auto mb-3 opacity-30" />
           <p>No agent activity recorded yet for this farm.</p>
           <p className="text-xs mt-2">Submit a reading to trigger the AI agent pipeline.</p>
@@ -339,12 +362,12 @@ export default function DecisionTracePage() {
 
       {/* ── Filtered empty state (events exist, but none match filter) ─────── */}
       {!isLoading && allEvents.length > 0 && filteredEvents.length === 0 && (
-        <div className="card p-8 text-center text-gray-600">
+        <div className="card p-8 text-center" style={{ color: 'var(--text-muted)' }}>
           <activeFilterDef.Icon size={28} className="mx-auto mb-3 opacity-30" />
           <p className="text-sm">{activeFilterDef.emptyMsg}</p>
           <button
             onClick={() => setActiveFilter('ALL')}
-            className="mt-3 text-xs text-blue-400 hover:text-blue-300 transition-colors underline underline-offset-2"
+            style={{ marginTop: '0.75rem', fontSize: '0.75rem', color: 'var(--accent-seafoam)', cursor: 'pointer', background: 'none', border: 'none', textDecoration: 'underline' }}
           >
             Show all events
           </button>
@@ -360,32 +383,33 @@ export default function DecisionTracePage() {
         return (
           <div key={si} className="card p-5">
             <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2 flex-wrap">
-                <Zap size={14} className="text-amber-400" />
-                <span className="text-sm font-semibold text-white">
-                  Agent Session — {formatTime(sessionTime)}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Zap size={14} style={{ color: 'var(--risk-medium)' }} />
+                  <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    Agent Session — {formatTime(sessionTime)}
+                  </span>
+                  {riskDetail?.riskLevel && (
+                    <span style={{
+                      fontSize: '0.75rem', padding: '0.125rem 0.5rem', borderRadius: 999, fontWeight: 500,
+                      ...(riskDetail.riskLevel === 'CRITICAL' ? { background: 'rgba(200,62,77,0.15)',  color: 'var(--risk-critical)' }
+                        : riskDetail.riskLevel === 'HIGH'   ? { background: 'rgba(228,87,86,0.15)',  color: 'var(--risk-high)' }
+                        : riskDetail.riskLevel === 'MEDIUM' ? { background: 'rgba(230,162,60,0.15)', color: 'var(--risk-medium)' }
+                        :                                     { background: 'rgba(63,174,90,0.15)',  color: 'var(--risk-low)' })
+                    }}>
+                      {riskDetail.riskLevel}
+                    </span>
+                  )}
+                  {/* Active filter label when a sub-filter is selected */}
+                  {activeFilter !== 'ALL' && (
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                      ({activeFilterDef.label} only)
+                    </span>
+                  )}
+                </div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  {agentCount} agent{agentCount !== 1 ? 's' : ''} ran
                 </span>
-                {riskDetail?.riskLevel && (
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                    riskDetail.riskLevel === 'CRITICAL' ? 'bg-purple-500/20 text-purple-400' :
-                    riskDetail.riskLevel === 'HIGH'     ? 'bg-red-500/20     text-red-400'    :
-                    riskDetail.riskLevel === 'MEDIUM'   ? 'bg-amber-500/20   text-amber-400'  :
-                                                          'bg-green-500/20   text-green-400'
-                  }`}>
-                    {riskDetail.riskLevel}
-                  </span>
-                )}
-                {/* Active filter label when a sub-filter is selected */}
-                {activeFilter !== 'ALL' && (
-                  <span className="text-xs text-gray-600 italic">
-                    ({activeFilterDef.label} only)
-                  </span>
-                )}
               </div>
-              <span className="text-xs text-gray-600">
-                {agentCount} agent{agentCount !== 1 ? 's' : ''} ran
-              </span>
-            </div>
 
             <div className="space-y-0">
               {session.map((event, ei) => (

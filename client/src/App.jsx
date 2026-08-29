@@ -1,6 +1,10 @@
-import { useState, Component } from 'react'
+import { useState, useEffect, useCallback, Component } from 'react'
 import { BrowserRouter, Routes, Route, NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, MapPin, Activity, Cpu, Bell, Radio, MessageSquare, Waves, AlertTriangle, RefreshCw, GitBranch, FlaskConical, Map, TrendingUp } from 'lucide-react'
+import {
+  LayoutDashboard, MapPin, Activity, Cpu, Bell, Radio,
+  Waves, AlertTriangle, RefreshCw, GitBranch, FlaskConical,
+  Map, TrendingUp, Droplets, Sun, Moon
+} from 'lucide-react'
 import Dashboard from './pages/Dashboard.jsx'
 import FarmsList from './pages/FarmsList.jsx'
 import FarmDetail from './pages/FarmDetail.jsx'
@@ -13,27 +17,73 @@ import WhatIfPage from './pages/WhatIfPage.jsx'
 import HeatmapPage from './pages/HeatmapPage.jsx'
 import ForecastPage from './pages/ForecastPage.jsx'
 
+// ── Theme hook ────────────────────────────────────────────────────────────────
+
+function useTheme() {
+  const [theme, setThemeState] = useState(() => {
+    // Read the value already applied by the flash-prevention script in index.html
+    return document.documentElement.getAttribute('data-theme') || 'dark'
+  })
+
+  const setTheme = useCallback((next) => {
+    document.documentElement.setAttribute('data-theme', next)
+    try { localStorage.setItem('salinity-shield-theme', next) } catch {}
+    setThemeState(next)
+  }, [])
+
+  const toggle = useCallback(() => {
+    setTheme(theme === 'dark' ? 'light' : 'dark')
+  }, [theme, setTheme])
+
+  return { theme, toggle }
+}
+
+// ── Theme toggle button ───────────────────────────────────────────────────────
+
+function ThemeToggle({ theme, onToggle }) {
+  const isDark = theme === 'dark'
+  return (
+    <button
+      className="theme-toggle"
+      onClick={onToggle}
+      aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+      title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+    >
+      {isDark
+        ? <Moon size={12} style={{ flexShrink: 0 }} />
+        : <Sun  size={12} style={{ flexShrink: 0 }} />
+      }
+      <span className="theme-toggle__track">
+        <span className="theme-toggle__thumb" />
+      </span>
+      {isDark
+        ? <span style={{ fontSize: '0.6875rem', letterSpacing: '0.03em' }}>Dark</span>
+        : <span style={{ fontSize: '0.6875rem', letterSpacing: '0.03em' }}>Light</span>
+      }
+    </button>
+  )
+}
+
 class ErrorBoundary extends Component {
   constructor(props) {
     super(props)
     this.state = { hasError: false, error: null }
   }
-  static getDerivedStateFromError(error) {
-    return { hasError: true, error }
-  }
-  componentDidCatch(error, info) {
-    console.error('[ErrorBoundary] Caught error:', error, info)
-  }
+  static getDerivedStateFromError(error) { return { hasError: true, error } }
+  componentDidCatch(error, info) { console.error('[ErrorBoundary]', error, info) }
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-gray-950 flex items-center justify-center p-6">
-          <div className="bg-gray-900 border border-red-500/30 rounded-xl p-8 max-w-lg w-full text-center space-y-4">
-            <AlertTriangle size={40} className="text-red-400 mx-auto" />
-            <h2 className="text-lg font-bold text-white">Something went wrong</h2>
-            <p className="text-sm text-gray-400">{this.state.error?.message || 'An unexpected error occurred.'}</p>
-            <pre className="text-xs text-gray-600 bg-gray-800 rounded-lg p-3 text-left overflow-auto max-h-40">{this.state.error?.stack}</pre>
-            <button onClick={() => this.setState({ hasError: false, error: null })} className="inline-flex items-center gap-2 btn-primary">
+        <div style={{ minHeight: '100vh', background: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem' }}>
+          <div className="card" style={{ maxWidth: 480, width: '100%', padding: '2rem', textAlign: 'center' }}>
+            <AlertTriangle size={36} style={{ color: 'var(--accent-red)', margin: '0 auto 1rem' }} />
+            <h2 style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>Something went wrong</h2>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>{this.state.error?.message}</p>
+            <button
+              className="btn-primary"
+              style={{ gap: '0.5rem', margin: '0 auto' }}
+              onClick={() => this.setState({ hasError: false, error: null })}
+            >
               <RefreshCw size={14} /> Try Again
             </button>
           </div>
@@ -55,12 +105,12 @@ const NAV_SECTIONS = [
     ],
   },
   {
-    title: 'AI Intelligence',
+    title: 'Intelligence',
     items: [
       { path: '/decision-trace', label: 'AI Decision Trace',  icon: GitBranch },
-      { path: '/forecast',       label: 'Forecast',           icon: TrendingUp },
+      { path: '/forecast',       label: 'Salinity Forecast',  icon: TrendingUp },
       { path: '/what-if',        label: 'What-If Simulator',  icon: FlaskConical },
-      { path: '/advisory',       label: 'AI Advisory',        icon: Cpu },
+      { path: '/advisory',       label: 'AI Farm Advisor',    icon: Cpu },
     ],
   },
   {
@@ -72,39 +122,92 @@ const NAV_SECTIONS = [
   },
 ]
 
-function Sidebar() {
+function Sidebar({ theme, onToggleTheme }) {
   return (
-    <aside className="w-64 flex-shrink-0 bg-gray-900 border-r border-gray-800 flex flex-col min-h-screen">
-      <div className="flex items-center gap-3 px-5 py-5 border-b border-gray-800">
-        <div className="p-2 bg-blue-600/20 rounded-lg">
-          <Waves size={20} className="text-blue-400" />
+    <aside style={{
+      width: 240,
+      flexShrink: 0,
+      background: 'var(--bg-surface)',
+      borderRight: '1px solid var(--border-subtle)',
+      display: 'flex',
+      flexDirection: 'column',
+      minHeight: '100vh',
+      position: 'sticky',
+      top: 0,
+      height: '100vh',
+      overflowY: 'auto',
+    }}>
+      {/* Logo */}
+      <div style={{
+        padding: '1.25rem 1.25rem 1rem',
+        borderBottom: '1px solid var(--border-subtle)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.75rem',
+      }}>
+        <div style={{
+          width: 36, height: 36,
+          borderRadius: 9,
+          background: 'rgba(45,212,191,0.1)',
+          border: '1px solid rgba(45,212,191,0.2)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0,
+        }}>
+          <Waves size={18} style={{ color: 'var(--accent-seafoam)' }} />
         </div>
         <div>
-          <h1 className="font-bold text-white text-sm leading-tight">Salinity Shield AI</h1>
-          <p className="text-xs text-gray-500">Coastal Farmland Advisor</p>
+          <div style={{ fontWeight: 700, fontSize: '0.875rem', color: 'var(--text-primary)', lineHeight: 1.2 }}>
+            Salinity Shield AI
+          </div>
+          <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginTop: 2 }}>
+            Coastal Farmland Advisor
+          </div>
         </div>
       </div>
 
-      <nav className="flex-1 px-3 py-4 space-y-4 overflow-y-auto">
+      {/* Navigation */}
+      <nav style={{ flex: 1, padding: '1rem 0.75rem', overflowY: 'auto' }}>
         {NAV_SECTIONS.map(section => (
-          <div key={section.title}>
-            <p className="text-xs text-gray-600 uppercase tracking-wider px-3 mb-1">{section.title}</p>
-            <div className="space-y-0.5">
+          <div key={section.title} style={{ marginBottom: '1.25rem' }}>
+            <div style={{
+              fontSize: '0.6rem',
+              fontWeight: 700,
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
+              color: 'var(--text-muted)',
+              padding: '0 0.5rem',
+              marginBottom: '0.4rem',
+            }}>
+              {section.title}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
               {section.items.map(item => (
                 <NavLink
                   key={item.path}
                   to={item.path}
                   end={item.exact}
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      isActive
-                        ? 'bg-blue-600/20 text-blue-400 border border-blue-600/30'
-                        : 'text-gray-400 hover:text-gray-300 hover:bg-gray-800'
-                    }`
-                  }
+                  style={({ isActive }) => ({
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.625rem',
+                    padding: '0.5rem 0.625rem',
+                    borderRadius: 7,
+                    fontSize: '0.8125rem',
+                    fontWeight: isActive ? 600 : 400,
+                    textDecoration: 'none',
+                    color: isActive ? 'var(--accent-seafoam)' : 'var(--text-secondary)',
+                    background: isActive ? 'rgba(45,212,191,0.08)' : 'transparent',
+                    transition: 'background 0.12s, color 0.12s',
+                  })}
+                  onMouseEnter={e => { if (!e.currentTarget.dataset.active) { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; e.currentTarget.style.color = 'var(--text-primary)' } }}
+                  onMouseLeave={e => { if (!e.currentTarget.dataset.active) { e.currentTarget.style.background = ''; e.currentTarget.style.color = '' } }}
                 >
-                  <item.icon size={16} />
-                  {item.label}
+                  {({ isActive }) => (
+                    <>
+                      <item.icon size={15} style={{ flexShrink: 0, opacity: isActive ? 1 : 0.7 }} />
+                      {item.label}
+                    </>
+                  )}
                 </NavLink>
               ))}
             </div>
@@ -112,34 +215,50 @@ function Sidebar() {
         ))}
       </nav>
 
-      <div className="px-5 py-4 border-t border-gray-800">
-        <p className="text-xs text-gray-600">Gujarat Hackathon 2026</p>
-        <p className="text-xs text-gray-700 mt-0.5">Powered by IBM Granite AI</p>
+      {/* Footer */}
+      <div style={{
+        padding: '1rem 1.25rem',
+        borderTop: '1px solid var(--border-subtle)',
+      }}>
+        {/* Theme toggle */}
+        <div style={{ marginBottom: '0.75rem' }}>
+          <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+          <Droplets size={12} style={{ color: 'var(--accent-seafoam)' }} />
+          <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>IBM Granite AI</span>
+          <span className="live-dot" style={{ marginLeft: 'auto', width: 6, height: 6 }} />
+        </div>
+        <div style={{ fontSize: '0.625rem', color: 'var(--text-muted)', opacity: 0.6 }}>
+          Gujarat Hackathon 2026
+        </div>
       </div>
     </aside>
   )
 }
 
 export default function App() {
+  const { theme, toggle } = useTheme()
+
   return (
     <BrowserRouter>
       <ErrorBoundary>
-        <div className="flex min-h-screen bg-gray-950">
-          <Sidebar />
-          <main className="flex-1 overflow-auto">
+        <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-base)' }}>
+          <Sidebar theme={theme} onToggleTheme={toggle} />
+          <main style={{ flex: 1, overflowX: 'hidden', overflowY: 'auto', minWidth: 0 }}>
             <ErrorBoundary>
               <Routes>
-                <Route path="/"                element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
-                <Route path="/farms"           element={<ErrorBoundary><FarmsList /></ErrorBoundary>} />
-                <Route path="/farms/:id"       element={<ErrorBoundary><FarmDetail /></ErrorBoundary>} />
-                <Route path="/monitoring"      element={<ErrorBoundary><LiveMonitoring /></ErrorBoundary>} />
-                <Route path="/advisory"        element={<ErrorBoundary><AIAdvisoryPage /></ErrorBoundary>} />
-                <Route path="/alerts"          element={<ErrorBoundary><AlertsPage /></ErrorBoundary>} />
-                <Route path="/simulator"       element={<ErrorBoundary><SimulatorPage /></ErrorBoundary>} />
-                <Route path="/decision-trace"  element={<ErrorBoundary><DecisionTracePage /></ErrorBoundary>} />
-                <Route path="/what-if"         element={<ErrorBoundary><WhatIfPage /></ErrorBoundary>} />
-                <Route path="/heatmap"         element={<ErrorBoundary><HeatmapPage /></ErrorBoundary>} />
-                <Route path="/forecast"        element={<ErrorBoundary><ForecastPage /></ErrorBoundary>} />
+                <Route path="/"               element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
+                <Route path="/farms"          element={<ErrorBoundary><FarmsList /></ErrorBoundary>} />
+                <Route path="/farms/:id"      element={<ErrorBoundary><FarmDetail /></ErrorBoundary>} />
+                <Route path="/monitoring"     element={<ErrorBoundary><LiveMonitoring /></ErrorBoundary>} />
+                <Route path="/advisory"       element={<ErrorBoundary><AIAdvisoryPage /></ErrorBoundary>} />
+                <Route path="/alerts"         element={<ErrorBoundary><AlertsPage /></ErrorBoundary>} />
+                <Route path="/simulator"      element={<ErrorBoundary><SimulatorPage /></ErrorBoundary>} />
+                <Route path="/decision-trace" element={<ErrorBoundary><DecisionTracePage /></ErrorBoundary>} />
+                <Route path="/what-if"        element={<ErrorBoundary><WhatIfPage /></ErrorBoundary>} />
+                <Route path="/heatmap"        element={<ErrorBoundary><HeatmapPage /></ErrorBoundary>} />
+                <Route path="/forecast"       element={<ErrorBoundary><ForecastPage /></ErrorBoundary>} />
               </Routes>
             </ErrorBoundary>
           </main>

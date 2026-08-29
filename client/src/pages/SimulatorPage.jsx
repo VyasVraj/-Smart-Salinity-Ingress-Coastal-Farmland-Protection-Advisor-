@@ -6,28 +6,18 @@ export default function SimulatorPage() {
   const { data: farms = [] } = useFarms()
 
   return (
-    <div className="p-6 space-y-5">
-      <div>
-        <h1 className="text-xl font-bold text-white flex items-center gap-2">
-          <Radio className="text-purple-400" size={22} /> Live Sensor Simulator
+    <div style={{ padding: '1.5rem', maxWidth: 900, margin: '0 auto' }}>
+      {/* Header */}
+      <div style={{ marginBottom: '1.5rem' }}>
+        <h1 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 0.25rem' }}>
+          <Radio size={20} style={{ color: '#8B5CF6' }} /> Live Sensor Simulator
         </h1>
-        <p className="text-sm text-gray-500 mt-1">
+        <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
           Simulate real sensor data through the same backend API pipeline that physical sensors use.
         </p>
       </div>
 
-      <div className="card p-5">
-        <h2 className="text-sm font-semibold text-gray-400 mb-1 uppercase tracking-wide">How It Works</h2>
-        <div className="text-xs text-gray-500 space-y-1">
-          <p>1. Select a farm and scenario</p>
-          <p>2. Start simulation — each reading goes to the <strong className="text-gray-400">real backend API</strong></p>
-          <p>3. Backend validates → saves to PostgreSQL → calculates risk → triggers IBM Granite agents</p>
-          <p>4. Dashboard updates <strong className="text-gray-400">in real time via Socket.IO</strong></p>
-          <p className="text-yellow-400">⚠ All data is labeled SIMULATOR source — not real sensor data</p>
-        </div>
-      </div>
-
-      <div className="card p-5">
+      <div className="card" style={{ padding: '1.25rem' }}>
         <SensorSimulator farms={farms} />
       </div>
     </div>

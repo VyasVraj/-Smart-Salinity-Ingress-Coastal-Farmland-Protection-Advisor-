@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useMutation } from '@tanstack/react-query'
-import { Play, Square, Settings } from 'lucide-react'
+import { Play, Square } from 'lucide-react'
 import { api } from '../lib/api.js'
 
 const SCENARIOS = {
@@ -129,22 +129,23 @@ export function SensorSimulator({ farms = [] }) {
     return () => clearInterval(timerRef.current)
   }, [])
 
-  const logColors = { info: 'text-blue-400', success: 'text-green-400', warning: 'text-amber-400', danger: 'text-red-400', critical: 'text-purple-400' }
+  const logColor = { info: 'var(--accent-seafoam)', success: 'var(--risk-low)', warning: 'var(--risk-medium)', danger: 'var(--risk-high)', critical: 'var(--risk-critical)' }
 
   return (
-    <div className="space-y-5">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
       {/* Demo banner */}
-      <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-4 py-3 text-sm">
-        <span className="text-yellow-400 font-semibold">⚠ SIMULATED DATA</span>
-        <span className="text-gray-400 ml-2">All simulator readings are clearly labeled as SIMULATOR source.</span>
+      <div style={{ background: 'rgba(230,162,60,0.08)', border: '1px solid rgba(230,162,60,0.25)', borderRadius: 8, padding: '0.75rem 1rem', fontSize: '0.875rem' }}>
+        <span style={{ color: 'var(--risk-medium)', fontWeight: 600 }}>⚠ SIMULATED DATA</span>
+        <span style={{ color: 'var(--text-secondary)', marginLeft: 8 }}>All simulator readings are clearly labeled as SIMULATOR source.</span>
       </div>
 
       {/* Controls */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-xs text-gray-400 mb-1">Farm</label>
+          <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Farm</label>
           <select
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white"
+            className="form-input"
+            style={{ width: '100%' }}
             value={farmId}
             onChange={e => setFarmId(e.target.value)}
             disabled={running}
@@ -156,12 +157,13 @@ export function SensorSimulator({ farms = [] }) {
         </div>
 
         <div>
-          <label className="block text-xs text-gray-400 mb-1">Interval (seconds)</label>
+          <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Interval (seconds)</label>
           <input
             type="number"
             min="2"
             max="60"
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white"
+            className="form-input"
+            style={{ width: '100%' }}
             value={interval}
             onChange={e => setInterval_(parseInt(e.target.value, 10))}
             disabled={running}
@@ -170,21 +172,25 @@ export function SensorSimulator({ farms = [] }) {
       </div>
 
       <div>
-        <label className="block text-xs text-gray-400 mb-2">Scenario</label>
+        <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Scenario</label>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {Object.entries(SCENARIOS).map(([key, s]) => (
             <button
               key={key}
               onClick={() => !running && setScenario(key)}
               disabled={running}
-              className={`text-left px-4 py-3 rounded-lg border transition-colors ${
-                scenario === key
-                  ? 'border-blue-500 bg-blue-500/10 text-white'
-                  : 'border-gray-700 bg-gray-800 text-gray-400 hover:border-gray-600'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
+              style={{
+                textAlign: 'left', padding: '0.75rem 1rem', borderRadius: 8,
+                border: `1px solid ${scenario === key ? 'var(--accent-seafoam)' : 'var(--border)'}`,
+                background: scenario === key ? 'rgba(45,212,191,0.06)' : 'var(--bg-elevated)',
+                color: scenario === key ? 'var(--text-primary)' : 'var(--text-secondary)',
+                cursor: running ? 'not-allowed' : 'pointer',
+                opacity: running ? 0.5 : 1,
+                transition: 'border-color 0.15s, background 0.15s',
+              }}
             >
-              <div className="font-medium text-sm">{s.label}</div>
-              <div className="text-xs text-gray-500 mt-0.5">{s.description}</div>
+              <div style={{ fontWeight: 500, fontSize: '0.875rem', marginBottom: 2 }}>{s.label}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>{s.description}</div>
             </button>
           ))}
         </div>
@@ -192,24 +198,24 @@ export function SensorSimulator({ farms = [] }) {
 
       {/* Current values preview */}
       {currentValues && running && (
-        <div className="bg-gray-800 rounded-lg px-4 py-3">
-          <p className="text-xs text-gray-500 mb-2 font-medium uppercase tracking-wide">Current Reading (Step {step + 1})</p>
-          <div className="grid grid-cols-3 gap-3 text-sm">
-            <div><span className="text-gray-500">Soil EC:</span> <span className="text-red-400 font-bold">{currentValues.soilEC}</span> dS/m</div>
-            <div><span className="text-gray-500">GW EC:</span> <span className="text-blue-400 font-bold">{currentValues.groundwaterEC}</span> dS/m</div>
-            <div><span className="text-gray-500">TDS:</span> <span className="text-amber-400 font-bold">{currentValues.tds}</span> ppm</div>
+        <div style={{ background: 'var(--bg-elevated)', borderRadius: 8, padding: '0.75rem 1rem' }}>
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Current Reading (Step {step + 1})</p>
+          <div className="grid grid-cols-3 gap-3" style={{ fontSize: '0.875rem' }}>
+            <div><span style={{ color: 'var(--text-muted)' }}>Soil EC:</span> <span style={{ color: 'var(--risk-high)', fontWeight: 700 }}>{currentValues.soilEC}</span> dS/m</div>
+            <div><span style={{ color: 'var(--text-muted)' }}>GW EC:</span> <span style={{ color: 'var(--accent-seafoam)', fontWeight: 700 }}>{currentValues.groundwaterEC}</span> dS/m</div>
+            <div><span style={{ color: 'var(--text-muted)' }}>TDS:</span> <span style={{ color: 'var(--risk-medium)', fontWeight: 700 }}>{currentValues.tds}</span> ppm</div>
           </div>
         </div>
       )}
 
       {/* Start/Stop */}
-      <div className="flex gap-3">
+      <div style={{ display: 'flex', gap: '0.75rem' }}>
         {!running ? (
-          <button onClick={start} className="btn-primary flex items-center gap-2">
+          <button onClick={start} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Play size={16} /> Start Simulation
           </button>
         ) : (
-          <button onClick={stop} className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2">
+          <button onClick={stop} style={{ background: 'var(--risk-high)', color: '#fff', padding: '0.5rem 1rem', borderRadius: 8, fontWeight: 500, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem' }}>
             <Square size={16} /> Stop Simulation
           </button>
         )}
@@ -218,12 +224,12 @@ export function SensorSimulator({ farms = [] }) {
       {/* Log */}
       {log.length > 0 && (
         <div>
-          <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Simulation Log</p>
-          <div className="bg-gray-950 rounded-lg p-3 space-y-1 max-h-48 overflow-y-auto font-mono text-xs">
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Simulation Log</p>
+          <div style={{ background: 'var(--bg-base)', borderRadius: 8, padding: '0.75rem', maxHeight: 192, overflowY: 'auto', fontFamily: 'monospace', fontSize: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
             {log.map((entry, i) => (
-              <div key={i} className="flex gap-2">
-                <span className="text-gray-600 flex-shrink-0">{entry.ts}</span>
-                <span className={logColors[entry.type] || 'text-gray-400'}>{entry.msg}</span>
+              <div key={i} style={{ display: 'flex', gap: '0.5rem' }}>
+                <span style={{ color: 'var(--text-muted)', flexShrink: 0 }}>{entry.ts}</span>
+                <span style={{ color: logColor[entry.type] || 'var(--text-secondary)' }}>{entry.msg}</span>
               </div>
             ))}
           </div>

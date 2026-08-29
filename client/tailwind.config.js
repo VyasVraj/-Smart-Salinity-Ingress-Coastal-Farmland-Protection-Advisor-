@@ -4,26 +4,43 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-          900: '#1e3a5f',
-        },
+        // Coastal palette
         ocean: {
-          100: '#e0f2fe',
-          500: '#0ea5e9',
-          600: '#0284c7',
-          900: '#0c4a6e',
+          950: '#071923',
+          900: '#0B2430',
+          800: '#102D38',
+          700: '#163A45',
+          600: '#1E4D5C',
+          500: '#256070',
+          400: '#2D7A8F',
+          300: '#3A9AB5',
+          200: '#5BBCD4',
+          100: '#A8DDE9',
+        },
+        seafoam: {
+          400: '#2DD4BF',
+          500: '#14B8A6',
+          600: '#0D9488',
+        },
+        agri: {
+          400: '#3FAE5A',
+          500: '#2D9B47',
+          600: '#1E7A34',
+        },
+        sand: {
+          200: '#E8D9B8',
+          300: '#D6C29E',
+          400: '#C4A97A',
         },
         risk: {
-          low: '#22c55e',
-          medium: '#f59e0b',
-          high: '#ef4444',
-          critical: '#7c3aed',
+          low:      '#3FAE5A',
+          medium:   '#E6A23C',
+          high:     '#E45756',
+          critical: '#C83E4D',
         },
+      },
+      fontFamily: {
+        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
       },
     },
   },

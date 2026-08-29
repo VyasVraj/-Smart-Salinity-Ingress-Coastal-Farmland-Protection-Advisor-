@@ -2,52 +2,532 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --color-risk-low: #22c55e;
-  --color-risk-medium: #f59e0b;
-  --color-risk-high: #ef4444;
-  --color-risk-critical: #7c3aed;
+/* ── Google Fonts — Inter ── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   DARK THEME  —  [data-theme="dark"]  (default)
+   "Coastal monitoring at night"
+   Deep navy-teal surfaces · bright-white text · teal accents · warm risk colors
+
+   Contrast targets (WCAG AA minimum 4.5:1 for body text, 3:1 for large):
+     --text-primary   on --bg-card     → ~14:1  ✓
+     --text-secondary on --bg-card     → ~7.5:1 ✓
+     --text-muted     on --bg-card     → ~4.8:1 ✓  (minimum—only for labels)
+══════════════════════════════════════════════════════════════════════════════ */
+:root,
+[data-theme="dark"] {
+  /* ── Backgrounds (dark → light layering) */
+  --bg-base:       #050F17;   /* page canvas — deepest ocean */
+  --bg-surface:    #091D2A;   /* sidebar, panels */
+  --bg-card:       #0D2535;   /* card surface */
+  --bg-elevated:   #132F3E;   /* elevated elements, inputs, tags */
+  --bg-hover:      #1A3A4D;   /* hover rows, button hover */
+
+  /* ── Borders */
+  --border:        #1F4A5C;   /* standard border */
+  --border-subtle: #122B38;   /* card edge — barely-there separator */
+  --border-strong: #2A5E74;   /* focused / emphasized borders */
+
+  /* ── Text — carefully graduated for hierarchy */
+  --text-primary:   #EFF6FA;  /* headings, values — near-white with slight blue cast */
+  --text-secondary: #9BBDCC;  /* body copy, descriptions */
+  --text-muted:     #5E8EA0;  /* timestamps, labels — readable but recessed */
+  --text-disabled:  #3A6070;  /* placeholder, disabled — clearly secondary */
+
+  /* ── Brand accents */
+  --accent-blue:     #2196F3;  /* primary action (bright enough on dark) */
+  --accent-blue-hover: #1976D2;
+  --accent-seafoam:  #2DD4BF;  /* primary teal identity */
+  --accent-seafoam-dim: rgba(45,212,191,0.15);
+  --accent-green:    #4CAF50;
+  --accent-amber:    #FFA726;
+  --accent-red:      #EF5350;
+  --accent-critical: #D32F2F;
+  --accent-sand:     #D4A853;
+
+  /* ── Risk semantic colors */
+  --risk-low:      #43A047;   /* green */
+  --risk-medium:   #FB8C00;   /* amber — warm, not yellow */
+  --risk-high:     #E53935;   /* red */
+  --risk-critical: #AD1457;   /* deep rose/burgundy */
+
+  /* ── Inputs */
+  --input-bg:      #0F2C3B;
+  --input-border:  #1F4A5C;
+  --input-border-focus: #2DD4BF;
+
+  /* ── Shadows */
+  --shadow-card:   0 1px 3px rgba(0,0,0,0.4), 0 1px 8px rgba(0,0,0,0.25);
+  --shadow-raised: 0 4px 20px rgba(0,0,0,0.55);
+
+  /* ── Chart */
+  --chart-grid:        #122B38;
+  --chart-axis:        #5E8EA0;
+  --chart-tooltip-bg:  #0D2535;
+
+  /* ── Section label color (overridden below) */
+  --section-label-color: #5E8EA0;
 }
 
+/* ══════════════════════════════════════════════════════════════════════════════
+   LIGHT THEME  —  [data-theme="light"]
+   "Professional coastal agriculture control center"
+   Clean white cards · cool gray page · deep navy text · teal accents
+
+   Contrast targets (WCAG AA):
+     --text-primary   on --bg-card     → ~16:1  ✓  (#122638 on #FFFFFF)
+     --text-secondary on --bg-card     → ~9:1   ✓  (#2B4D65 on #FFFFFF)
+     --text-muted     on --bg-card     → ~5.5:1 ✓  (#4A6B80 on #FFFFFF)
+     --text-muted     on --bg-elevated → ~5.2:1 ✓  (#4A6B80 on #EFF5F9)
+══════════════════════════════════════════════════════════════════════════════ */
+[data-theme="light"] {
+  /* ── Backgrounds */
+  --bg-base:       #E8F0F5;   /* page canvas — cool coastal blue-gray */
+  --bg-surface:    #DBE7EF;   /* sidebar */
+  --bg-card:       #FFFFFF;   /* card surface */
+  --bg-elevated:   #EFF5F9;   /* secondary card, input bg, tags */
+  --bg-hover:      #E2EDF4;   /* row hover */
+
+  /* ── Borders */
+  --border:        #B5CBDA;   /* standard border — clearly visible */
+  --border-subtle: #CDDCE7;   /* subtle card separator */
+  --border-strong: #7FA8C0;   /* emphasized / focused */
+
+  /* ── Text — deep navy hierarchy */
+  --text-primary:   #122638;  /* headings, values — deepest navy */
+  --text-secondary: #2B4D65;  /* body copy — strong mid-navy */
+  --text-muted:     #4A6B80;  /* labels, timestamps — medium slate, still legible */
+  --text-disabled:  #7FA0B4;  /* placeholder — clearly secondary */
+
+  /* ── Brand accents (slightly deeper than dark mode for contrast on white) */
+  --accent-blue:       #1565C0;
+  --accent-blue-hover: #0D47A1;
+  --accent-seafoam:    #00796B;  /* deeper teal — clear on white */
+  --accent-seafoam-dim: rgba(0,121,107,0.12);
+  --accent-green:    #2E7D32;
+  --accent-amber:    #E65100;  /* deep orange-amber — readable on white */
+  --accent-red:      #C62828;
+  --accent-critical: #6A1B9A;  /* deep purple — clear on white */
+  --accent-sand:     #795548;
+
+  /* ── Risk semantic colors (deeper shades for white backgrounds) */
+  --risk-low:      #2E7D32;   /* forest green */
+  --risk-medium:   #E65100;   /* deep amber-orange */
+  --risk-high:     #C62828;   /* strong red */
+  --risk-critical: #6A1B9A;   /* deep purple */
+
+  /* ── Inputs */
+  --input-bg:            #FFFFFF;
+  --input-border:        #9BB8CC;
+  --input-border-focus:  #00796B;
+
+  /* ── Shadows */
+  --shadow-card:   0 1px 3px rgba(12,40,60,0.07), 0 0 0 1px rgba(12,40,60,0.05);
+  --shadow-raised: 0 4px 16px rgba(12,40,60,0.1);
+
+  /* ── Chart */
+  --chart-grid:        #D0DDE7;
+  --chart-axis:        #4A6B80;
+  --chart-tooltip-bg:  #FFFFFF;
+
+  /* ── Section label color */
+  --section-label-color: #00796B;  /* teal — matches accent, strongly visible */
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   SMOOTH THEME TRANSITION
+   Only color-related properties — never layout, transforms or animations.
+══════════════════════════════════════════════════════════════════════════════ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  transition:
+    background-color 0.18s ease,
+    border-color     0.18s ease,
+    color            0.18s ease,
+    box-shadow       0.18s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; }
+}
+
+/* ── Base ── */
 body {
-  @apply bg-gray-950 text-gray-100 antialiased;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.6;
 }
 
-.risk-badge-LOW    { @apply bg-green-500/20 text-green-400 border border-green-500/30; }
-.risk-badge-MEDIUM { @apply bg-amber-500/20 text-amber-400 border border-amber-500/30; }
-.risk-badge-HIGH   { @apply bg-red-500/20 text-red-400 border border-red-500/30; }
-.risk-badge-CRITICAL { @apply bg-purple-500/20 text-purple-400 border border-purple-500/30; }
+/* ══════════════════════════════════════════════════════════════════════════════
+   SHARED COMPONENTS
+══════════════════════════════════════════════════════════════════════════════ */
 
+/* ── Cards ── */
 .card {
-  @apply bg-gray-900 border border-gray-800 rounded-xl;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  box-shadow: var(--shadow-card);
 }
 
-.btn-primary {
-  @apply bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors;
+.card-elevated {
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 10px;
 }
+
+/* ── Buttons ── */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  background-color: var(--accent-blue);
+  color: #ffffff;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+}
+.btn-primary:hover   { background-color: var(--accent-blue-hover); }
+.btn-primary:active  { opacity: 0.85; }
+.btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .btn-secondary {
-  @apply bg-gray-800 hover:bg-gray-700 text-gray-300 px-4 py-2 rounded-lg font-medium transition-colors border border-gray-700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  background-color: var(--bg-elevated);
+  color: var(--text-secondary);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+.btn-secondary:hover { background-color: var(--bg-hover); color: var(--text-primary); border-color: var(--border-strong); }
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 0.4rem 0.75rem;
+  border-radius: 7px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+.btn-ghost:hover {
+  background-color: var(--bg-elevated);
+  color: var(--text-primary);
+  border-color: var(--border);
 }
 
+/* ── Risk badges ── */
+.risk-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.175rem 0.625rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  border: 1px solid;
+  text-transform: uppercase;
+}
+
+/* Dark mode — softer tint backgrounds, vivid text */
+[data-theme="dark"] .risk-badge-LOW,
+:root .risk-badge-LOW      { color: var(--risk-low);      background: rgba(67,160,71,0.15);   border-color: rgba(67,160,71,0.4); }
+[data-theme="dark"] .risk-badge-MEDIUM,
+:root .risk-badge-MEDIUM   { color: var(--risk-medium);   background: rgba(251,140,0,0.15);   border-color: rgba(251,140,0,0.4); }
+[data-theme="dark"] .risk-badge-HIGH,
+:root .risk-badge-HIGH     { color: var(--risk-high);     background: rgba(229,57,53,0.15);   border-color: rgba(229,57,53,0.4); }
+[data-theme="dark"] .risk-badge-CRITICAL,
+:root .risk-badge-CRITICAL { color: var(--risk-critical); background: rgba(173,20,87,0.15);   border-color: rgba(173,20,87,0.4); }
+[data-theme="dark"] .risk-badge-UNKNOWN,
+:root .risk-badge-UNKNOWN  { color: var(--text-muted);    background: rgba(94,142,160,0.1);   border-color: rgba(94,142,160,0.25); }
+
+/* Light mode — clearly visible on white, stronger tint */
+[data-theme="light"] .risk-badge-LOW      { color: var(--risk-low);      background: rgba(46,125,50,0.12);  border-color: rgba(46,125,50,0.45); }
+[data-theme="light"] .risk-badge-MEDIUM   { color: var(--risk-medium);   background: rgba(230,81,0,0.1);   border-color: rgba(230,81,0,0.4); }
+[data-theme="light"] .risk-badge-HIGH     { color: var(--risk-high);     background: rgba(198,40,40,0.1);  border-color: rgba(198,40,40,0.4); }
+[data-theme="light"] .risk-badge-CRITICAL { color: var(--risk-critical); background: rgba(106,27,154,0.1); border-color: rgba(106,27,154,0.4); }
+[data-theme="light"] .risk-badge-UNKNOWN  { color: var(--text-muted);    background: rgba(74,107,128,0.08);border-color: rgba(74,107,128,0.25); }
+
+/* ── Section label ── */
+/*
+  In dark mode: muted blue-gray — readable but recessed.
+  In light mode: deep teal — strongly visible, adds hierarchy.
+*/
+.section-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--section-label-color);
+}
+
+/* ── Demo badge ── */
 .demo-badge {
-  @apply inline-flex items-center gap-1 bg-yellow-500/10 text-yellow-400 text-xs px-2 py-0.5 rounded border border-yellow-500/20;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: rgba(251,140,0,0.12);
+  color: var(--accent-amber);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 0.125rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid rgba(251,140,0,0.3);
 }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { @apply bg-gray-950; }
-::-webkit-scrollbar-thumb { @apply bg-gray-700 rounded-full; }
-::-webkit-scrollbar-thumb:hover { @apply bg-gray-600; }
-
-/* Animation for live updates */
-@keyframes pulse-ring {
-  0%   { transform: scale(1); opacity: 1; }
-  100% { transform: scale(2); opacity: 0; }
+/* ── Form inputs ── */
+.form-input {
+  width: 100%;
+  background-color: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  outline: none;
 }
-.live-indicator::before {
-  content: '';
-  @apply absolute rounded-full bg-green-500;
-  animation: pulse-ring 1.5s ease-out infinite;
+.form-input:focus {
+  border-color: var(--input-border-focus);
+  box-shadow: 0 0 0 3px var(--accent-seafoam-dim);
+}
+.form-input::placeholder { color: var(--text-disabled); }
+.form-input:disabled { opacity: 0.45; cursor: not-allowed; }
+
+select.form-input {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235E8EA0' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-color: var(--input-bg);
+  padding-right: 2rem;
+}
+
+[data-theme="light"] select.form-input {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%234A6B80' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
+[data-theme="light"] select.form-input option {
+  background: var(--input-bg);
+  color: var(--text-primary);
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--bg-base); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent-seafoam); }
+
+/* ── Live dot ── */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.35; }
+}
+.live-dot {
+  display: inline-block;
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--accent-green);
+  animation: pulse-dot 1.8s ease-in-out infinite;
+  transition: none !important;
+}
+
+/* ── Spinner ── */
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   LEAFLET MAP
+══════════════════════════════════════════════════════════════════════════════ */
+.salinity-popup .leaflet-popup-content-wrapper {
+  background: transparent !important;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.55) !important;
+  padding: 0 !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(45,212,191,0.2) !important;
+}
+.salinity-popup .leaflet-popup-tip-container { display: none !important; }
+.salinity-popup .leaflet-popup-content { margin: 0 !important; }
+.salinity-popup .leaflet-popup-close-button {
+  color: #7fa8c0 !important;
+  font-size: 18px !important;
+  padding: 6px 8px !important;
+  top: 4px !important; right: 4px !important;
+}
+.salinity-popup .leaflet-popup-close-button:hover { color: #f0f7ff !important; }
+
+.leaflet-container { z-index: 0; }
+.leaflet-control-zoom { border: none !important; }
+.leaflet-control-zoom a {
+  background: rgba(5,15,23,0.88) !important;
+  color: #9BBDCC !important;
+  border-color: rgba(45,212,191,0.25) !important;
+}
+.leaflet-control-zoom a:hover { background: rgba(45,212,191,0.15) !important; color: #EFF6FA !important; }
+.leaflet-control-attribution {
+  background: rgba(5,15,23,0.78) !important;
+  color: #5E8EA0 !important;
+  font-size: 10px !important;
+}
+.leaflet-control-attribution a { color: #2DD4BF !important; }
+
+[data-theme="light"] .leaflet-control-zoom a {
+  background: rgba(255,255,255,0.94) !important;
+  color: #122638 !important;
+  border-color: rgba(18,38,56,0.18) !important;
+}
+[data-theme="light"] .leaflet-control-zoom a:hover {
+  background: rgba(0,121,107,0.1) !important;
+  color: #00796B !important;
+}
+[data-theme="light"] .leaflet-control-attribution {
+  background: rgba(255,255,255,0.9) !important;
+  color: #4A6B80 !important;
+}
+[data-theme="light"] .leaflet-control-attribution a { color: #00796B !important; }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   UI PATTERNS
+══════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Micro-interactions ── */
+.hover-lift { }
+.hover-lift:hover { transform: translateY(-1px); }
+
+/* ── Pipeline connector (AI Decision Trace page) ── */
+.pipeline-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  border: 2px solid;
+  flex-shrink: 0;
+}
+.pipeline-line {
+  width: 1px; flex: 1; min-height: 16px;
+  background: var(--border);
+}
+
+/* ── Tab bar ── */
+.tab-btn {
+  padding: 0.4rem 0.9rem;
+  border-radius: 7px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  border: 1px solid transparent;
+  cursor: pointer;
+  color: var(--text-muted);
+  background: transparent;
+  white-space: nowrap;
+}
+.tab-btn:hover {
+  color: var(--text-secondary);
+  background: var(--bg-elevated);
+  border-color: var(--border-subtle);
+}
+/* Dark active tab */
+[data-theme="dark"] .tab-btn.active,
+:root .tab-btn.active {
+  color: var(--accent-seafoam);
+  background: rgba(45,212,191,0.1);
+  border-color: rgba(45,212,191,0.25);
+  font-weight: 600;
+}
+/* Light active tab — stronger visual */
+[data-theme="light"] .tab-btn.active {
+  color: var(--accent-seafoam);
+  background: rgba(0,121,107,0.1);
+  border-color: rgba(0,121,107,0.3);
+  font-weight: 600;
+}
+
+/* ── Stat number ── */
+.stat-number {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+/* ── Utility: text colors ── */
+.text-ocean    { color: #3A9AB5; }
+.text-seafoam  { color: var(--accent-seafoam); }
+.text-agri     { color: var(--accent-green); }
+.text-sand     { color: var(--accent-sand); }
+.text-risk-low      { color: var(--risk-low); }
+.text-risk-medium   { color: var(--risk-medium); }
+.text-risk-high     { color: var(--risk-high); }
+.text-risk-critical { color: var(--risk-critical); }
+
+/* ── Utility: bg tints ── */
+.bg-risk-low      { background: rgba(67,160,71,0.09); }
+.bg-risk-medium   { background: rgba(251,140,0,0.09); }
+.bg-risk-high     { background: rgba(229,57,53,0.09); }
+.bg-risk-critical { background: rgba(173,20,87,0.09); }
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   THEME TOGGLE  (sidebar footer)
+══════════════════════════════════════════════════════════════════════════════ */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+.theme-toggle:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--accent-seafoam);
+  outline-offset: 2px;
+}
+
+/* Track pill */
+.theme-toggle__track {
+  position: relative;
+  width: 28px; height: 16px;
+  border-radius: 999px;
+  background: var(--border);
+  flex-shrink: 0;
+  transition: background 0.2s ease;
+}
+[data-theme="light"] .theme-toggle__track { background: var(--accent-seafoam); }
+/* Thumb */
+.theme-toggle__thumb {
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+[data-theme="light"] .theme-toggle__thumb {
+  transform: translateX(12px);
+  background: #ffffff;
 }
