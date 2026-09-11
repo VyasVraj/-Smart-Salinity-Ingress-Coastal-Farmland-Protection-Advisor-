@@ -1,0 +1,285 @@
+{
+  "name": "salinity-shield",
+  "version": "1.0.0",
+  "description": "Salinity Shield AI — Smart Salinity Ingress & Coastal Farmland Protection Advisor. An event-driven multi-agent AI platform powered by IBM Granite on IBM watsonx.ai, providing real-time salinity monitoring, risk assessment, crop advisory, irrigation guidance, land reclamation planning, and multilingual farmer alerts for coastal farmland in Gujarat, India.",
+  "repository": "https://github.com/VyasVraj/-Smart-Salinity-Ingress-Coastal-Farmland-Protection-Advisor-",
+  "keywords": [
+    "ibm-granite",
+    "ibm-watsonx",
+    "multi-agent",
+    "salinity",
+    "coastal-farming",
+    "gujarat",
+    "agriculture",
+    "agentic-ai"
+  ],
+  "runtime": {
+    "platform": "node",
+    "engine": ">=18.0.0"
+  },
+  "application": {
+    "entry_point": "server/src/server.js",
+    "start_command": "node server/src/server.js",
+    "framework": "fastify",
+    "type": "esm"
+  },
+  "environment": {
+    "PORT": {
+      "description": "Port the Fastify server listens on.",
+      "default": "5000",
+      "required": false
+    },
+    "NODE_ENV": {
+      "description": "Runtime environment (development | production).",
+      "default": "production",
+      "required": false
+    },
+    "CLIENT_URL": {
+      "description": "Allowed CORS origin for the React frontend.",
+      "default": "http://localhost:5173",
+      "required": false
+    },
+    "IBM_PROJECT_ID": {
+      "description": "IBM watsonx.ai project ID. Obtain from https://dataplatform.cloud.ibm.com/",
+      "required": true
+    },
+    "IBM_WATSON_API_KEY": {
+      "description": "IBM Cloud API key for IAM authentication to watsonx.ai.",
+      "required": true
+    },
+    "IBM_WATSON_AI_URL": {
+      "description": "IBM watsonx.ai regional endpoint URL.",
+      "default": "https://us-south.ml.cloud.ibm.com",
+      "required": false
+    },
+    "IBM_GRANITE_MODEL_ID": {
+      "description": "IBM Granite model identifier used by all agents.",
+      "default": "ibm/granite-4-h-small",
+      "required": false
+    },
+    "DATABASE_URL": {
+      "description": "PostgreSQL connection string for Prisma ORM.",
+      "required": true
+    },
+    "JWT_SECRET": {
+      "description": "Secret key for JWT signing (optional, used for user auth).",
+      "required": false
+    }
+  },
+  "ibm": {
+    "provider": "IBM watsonx.ai",
+    "model": {
+      "id_env": "IBM_GRANITE_MODEL_ID",
+      "default": "ibm/granite-4-h-small",
+      "family": "IBM Granite",
+      "capabilities": [
+        "text-generation",
+        "chat-completions",
+        "structured-json-output",
+        "multilingual-understanding",
+        "reasoning",
+        "recommendation-generation"
+      ]
+    },
+    "auth": {
+      "method": "IAM token",
+      "iam_endpoint": "https://iam.cloud.ibm.com/identity/token",
+      "api_key_env": "IBM_WATSON_API_KEY",
+      "project_id_env": "IBM_PROJECT_ID"
+    },
+    "endpoints": {
+      "text_generation": "/ml/v1/text/generation",
+      "chat_completions": "/ml/v1/text/chat",
+      "api_version": "2023-05-29"
+    },
+    "fallback_mode": "demo",
+    "fallback_note": "When IBM credentials are not configured, agents run in demo mode. Fallback output is clearly labeled [DEMO] in all responses and the UI."
+  },
+  "agents": {
+    "orchestrator": {
+      "file": "server/src/ai/orchestrator.js",
+      "description": "Coordinates all specialist agents based on risk level and trend. Selects which agents to activate, manages agent run lifecycle in PostgreSQL, and emits real-time Socket.IO events after each agent step.",
+      "trigger": "Automatically triggered after each new salinity reading is validated and risk-assessed."
+    },
+    "specialist_agents": [
+      {
+        "name": "MonitoringAgent",
+        "file": "server/src/ai/agents/monitoringAgent.js",
+        "type": "MONITORING",
+        "description": "Interprets soil EC, groundwater EC, TDS, and pH readings. Produces a condition summary, key findings, and trend interpretation.",
+        "activated_at_risk": [
+          "LOW",
+          "MEDIUM",
+          "HIGH",
+          "CRITICAL"
+        ],
+        "output_language": "en"
+      },
+      {
+        "name": "CropAdvisoryAgent",
+        "file": "server/src/ai/agents/cropAdvisoryAgent.js",
+        "type": "CROP_ADVISORY",
+        "description": "Recommends salinity-tolerant crop alternatives appropriate for Gujarat conditions. Assesses current crop stress risk.",
+        "activated_at_risk": [
+          "MEDIUM",
+          "HIGH",
+          "CRITICAL"
+        ],
+        "output_language": "en"
+      },
+      {
+        "name": "IrrigationAgent",
+        "file": "server/src/ai/agents/irrigationAgent.js",
+        "type": "IRRIGATION",
+        "description": "Assesses irrigation water quality and provides guidance on leaching, scheduling, and drainage.",
+        "activated_at_risk": [
+          "HIGH",
+          "CRITICAL"
+        ],
+        "output_language": "en"
+      },
+      {
+        "name": "LandReclamationAgent",
+        "file": "server/src/ai/agents/landReclamationAgent.js",
+        "type": "LAND_RECLAMATION",
+        "description": "Plans immediate, short-term, and long-term soil restoration actions to address salinity ingress.",
+        "activated_at_risk": [
+          "HIGH",
+          "CRITICAL"
+        ],
+        "output_language": "en"
+      },
+      {
+        "name": "FarmerAlertAgent",
+        "file": "server/src/ai/agents/farmerAlertAgent.js",
+        "type": "FARMER_ALERT",
+        "description": "Generates plain-language alerts addressed to the farmer. Multilingual: English, Hindi, and Gujarati.",
+        "activated_at_risk": [
+          "HIGH",
+          "CRITICAL"
+        ],
+        "output_languages": [
+          "en",
+          "hi",
+          "gu"
+        ]
+      },
+      {
+        "name": "CoastalFarmlandHealthAgent",
+        "file": "server/src/ai/agents/coastalFarmlandHealthAgent.js",
+        "type": "HEALTH_SUMMARY",
+        "description": "Runs after all specialist agents complete. Synthesises recent advisories and active alerts into an overall farm health summary.",
+        "activated_at_risk": [
+          "LOW",
+          "MEDIUM",
+          "HIGH",
+          "CRITICAL"
+        ],
+        "output_language": "en"
+      },
+      {
+        "name": "ChatAdvisor",
+        "file": "server/src/ai/agents/chatAdvisor.js",
+        "type": "CHAT",
+        "description": "Handles on-demand conversational queries from the farmer dashboard. Uses IBM Granite chat completions endpoint for contextual, grounded responses.",
+        "activated_at_risk": [
+          "on-demand"
+        ],
+        "output_language": "en"
+      }
+    ]
+  },
+  "risk_engine": {
+    "file": "server/src/engine/riskEngine.js",
+    "description": "Deterministic, transparent risk calculation. All arithmetic is performed without AI — IBM Granite is not used for risk scoring. Risk levels: LOW | MEDIUM | HIGH | CRITICAL. Trend detection: IMPROVING | STABLE | WORSENING | RAPIDLY_WORSENING.",
+    "thresholds": {
+      "soil_ec_unit": "dS/m",
+      "groundwater_ec_unit": "dS/m",
+      "tds_unit": "ppm",
+      "risk_levels": [
+        "LOW",
+        "MEDIUM",
+        "HIGH",
+        "CRITICAL"
+      ]
+    }
+  },
+  "database": {
+    "engine": "PostgreSQL",
+    "orm": "Prisma",
+    "schema": "server/prisma/schema.prisma",
+    "connection_env": "DATABASE_URL",
+    "tables": [
+      "farms",
+      "salinityReadings",
+      "riskAssessments",
+      "agentRuns",
+      "advisories",
+      "alerts"
+    ]
+  },
+  "api": {
+    "framework": "Fastify 4",
+    "port_env": "PORT",
+    "default_port": 5000,
+    "realtime": "Socket.IO 4",
+    "routes": {
+      "health": "GET /api/health",
+      "ai_health": "GET /api/ai/health",
+      "ai_test": "GET /api/ai/test",
+      "farms": "/api/farms",
+      "readings": "/api/readings",
+      "chat": "/api/chat",
+      "analytics": "/api/analytics"
+    },
+    "cors_origin_env": "CLIENT_URL"
+  },
+  "frontend": {
+    "framework": "React 18",
+    "bundler": "Vite 5",
+    "language": "JavaScript (ESM)",
+    "entry": "client/index.html",
+    "build_output": "client/dist",
+    "dev_port": 5173,
+    "realtime_client": "Socket.IO Client 4"
+  },
+  "multilingual": {
+    "supported_languages": [
+      {
+        "code": "en",
+        "name": "English"
+      },
+      {
+        "code": "hi",
+        "name": "Hindi"
+      },
+      {
+        "code": "gu",
+        "name": "Gujarati"
+      }
+    ],
+    "note": "Multilingual output is generated by IBM Granite via the FarmerAlertAgent."
+  },
+  "deployment": {
+    "target": "IBM Cloud",
+    "options": [
+      "IBM Cloud Foundry",
+      "IBM Cloud Code Engine"
+    ],
+    "notes": [
+      "Set all environment variables listed under environment in the IBM Cloud dashboard.",
+      "Use IBM Databases for PostgreSQL for the managed DATABASE_URL.",
+      "Deploy the client/dist/ static build to IBM Cloud Object Storage or a CDN.",
+      "No credentials should be embedded in this file or committed to version control."
+    ]
+  },
+  "security": {
+    "credentials_exposure": "none",
+    "notes": [
+      "IBM API keys and credentials are server-side only — never sent to the browser.",
+      "IAM token exchange is performed server-side in server/src/ai/watsonxClient.js.",
+      "All .env files are excluded from version control via .gitignore.",
+      "Input validation uses Zod schemas on all API endpoints."
+    ]
+  }
+}
